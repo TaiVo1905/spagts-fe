@@ -16,7 +16,7 @@ Admins manage users and class structures.
 - 💾 LocalStorage / Redux
 
 ## 📁 Project Structure
-
+```bash
 src/
 ├── assets/         # Images, fonts, static files
 ├── components/     # Reusable UI components
@@ -29,7 +29,7 @@ src/
 ├── utils/          # Utility functions
 ├── App.tsx         # Main app component
 ├── main.tsx        # Entry point
-
+```
 
 ## 🛠️ Installation
 
@@ -43,4 +43,4 @@ npm install
 
 # Start development server
 npm run dev
-
+```
