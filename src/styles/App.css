@@ -1,6 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --primary-color: #21BAEA;
+  --background-color: #F6F5FE;
+  --text-color: #000000;
+  --light-color: #FFFFFF;
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
   /* padding: 2rem; */
   text-align: center;
 }
+
+
