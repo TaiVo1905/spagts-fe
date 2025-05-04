@@ -1,12 +1,19 @@
 import './styles/App.css'
 
-function App() {
+import React from 'react';
+import TeacherCard from './components/ClassCard';
 
+function App() {
   return (
-    <>
-      <h1 className="text-(--primary-color) font-bold underline">Hello</h1>
-    </>
-  )
+    <div>
+      <TeacherCard 
+        title="IT English"
+        name="Nguyễn Thị Thùy Trang"
+        imageUrl="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
+      />
+    </div>
+  );
 }
 
-export default App
+export default App;
+
