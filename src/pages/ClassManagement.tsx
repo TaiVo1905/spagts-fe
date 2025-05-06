@@ -4,7 +4,7 @@ import MainLayout from "../layouts/MainLayout";
 import React, { useState } from "react";
 import Header from "../components/Header";
 import Avatar from "../components/Avatar";
-import menuItems from "../utils/menuItemsForStudentRole.jsx";
+import menuItems from "../utils/menuItemsForStudentRole.tsx";
 import Pagination from "../components/Pagination.tsx";
 
 const ClassManagement: React.FC = () => {
