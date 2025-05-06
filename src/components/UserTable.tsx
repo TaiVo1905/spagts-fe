@@ -43,39 +43,121 @@ const users: User[] = [
     role: "Admin",
     avatar: "https://i.pravatar.cc/150?img=13",
   },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
+  {
+    id: "#876125",
+    name: "Sophie Tran",
+    email: "sophie.tran@gmail.com",
+    date: "08 Dec, 2025",
+    role: "Admin",
+    avatar: "https://i.pravatar.cc/150?img=13",
+  },
 ];
 
 const UserTable: React.FC = () => {
   return (
-    <div className="w-full min-h-screen bg-gray-50 p-4">
-      <h1 className="text-2xl font-semibold mb-3 text-gray-800">User List</h1>
+    <div className="w-[calc(100vw-300px)] p-4">
+      <div className="overflow-auto max-h-[480px] tailwind-custom-scrollbar">
       <table className="min-w-[1000px] w-full border-separate border-spacing-y-3">
-        <thead>
-          <tr>
-            <th className="text-left text-sm text-gray-500 py-3 pl-5 bg-white">
-              <div className="flex items-center gap-1">
+        <thead className="sticky top-0 z-10">
+          <tr className="flex items-center pl-4 bg-(--light-color)">
+            <th className="w-[10%] text-sm text-(--text-color)/80 py-3">
+              <div className="flex items-center">
                 Id <FaCaretDown />
               </div>
             </th>
-            <th className="text-left text-sm text-gray-500 pr-3  bg-white">
-              <div className="flex items-center gap-1">
+            <th className="text-sm w-[25%] text-(--text-color)/80 py-3">
+              <div className="flex items-center">
                 Name <FaCaretDown />
               </div>
             </th>
-            <th className="text-left text-sm text-gray-500 pr-5 bg-white">
-              <div className="flex items-center gap-1">
+            <th className="text-sm  w-[25%] text-(--text-color)/80 py-3">
+              <div className="flex items-center">
                 Email <FaCaretDown />
               </div>
             </th>
-            <th className="text-left text-sm text-gray-500 pr-2 bg-white">
-              <div className="flex items-center gap-1">
+            <th className="text-sm  w-[15%] text-(--text-color)/80 py-3">
+              <div className="flex items-center">
                 Date <FaCaretDown />
               </div>
             </th>
-            <th className="text-left text-sm text-gray-500 pr-6 bg-white">
-              <div className="flex items-center gap-1">
+            <th className="text-sm  w-[10%] text-(--text-color)/80 py-3">
+              <div className="flex items-center">
                 Role <FaCaretDown />
               </div>
+            </th>
+            <th className="text-sm  w-[15%] text-(--text-color)/80 py-3">
             </th>
           </tr>
         </thead>
@@ -85,9 +167,9 @@ const UserTable: React.FC = () => {
             <tr key={idx}>
               <td colSpan={6} className="py-0.5">
                 <div className="bg-white rounded-lg shadow p-4 hover:bg-gray-100 flex items-center justify-between">
-                  <div className="w-[10%] text-sm text-gray-700">{user.id}</div>
+                  <div className="w-[10%] text-sm text-(--text-color)/80">{user.id}</div>
 
-                  <div className="w-[20%] text-sm text-gray-700 flex items-center gap-2">
+                  <div className="w-[25%] text-sm text-(--text-color)/80 flex items-center gap-2">
                     <img
                       src={user.avatar}
                       alt="avatar"
@@ -96,26 +178,26 @@ const UserTable: React.FC = () => {
                     <span>{user.name}</span>
                   </div>
 
-                  <div className="w-[25%] text-sm text-gray-700">{user.email}</div>
-                  <div className="w-[15%] text-sm text-gray-700">{user.date}</div>
+                  <div className="w-[25%] text-sm text-(--text-color)/80">{user.email}</div>
+                  <div className="w-[15%] text-sm text-(--text-color)/80">{user.date}</div>
 
-                  <div className="w-[13%] text-sm text-gray-700 relative">
+                  <div className="w-[10%] text-sm text-(--text-color)/80 relative">
                     <div className="relative inline-block w-full">
                       <select
-                        className="appearance-none w-full px-4 py-2 bg-orange-50 rounded-full text-cyan-500 font-semibold pr-2"
+                        className="appearance-none w-full px-4 py-2 bg-orange-50 rounded-full text-(--primary-color) font-semibold pr-2"
                         defaultValue={user.role}
                       >
                         <option value="Student">Student</option>
                         <option value="Teacher">Teacher</option>
                         <option value="Admin">Admin</option>
                       </select>
-                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black pt-0.5 pr-2">
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-(--text-color)/80 pt-0.5 pr-2">
                         <FaAngleDown size={17} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="w-[10%] flex justify-center gap-3 text-gray-500 hover:text-red-400">
+                  <div className="w-[15%] flex justify-center gap-3 text-(--text-color)/80 hover:text-red-400">
                     <FaEllipsisH className="cursor-pointer hover:text-red-600" size={18} />
                   </div>
                 </div>
@@ -124,6 +206,7 @@ const UserTable: React.FC = () => {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 };

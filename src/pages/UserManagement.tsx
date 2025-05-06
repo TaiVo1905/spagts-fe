@@ -29,7 +29,7 @@ const UserManagementPage: React.FC = () => {
       Sidebar={<Sidebar menuItems={menuItems} />}
       Content={
         <div className="p-4">
-          <div className="flex justify-between items-center mb-3 pl-170 pr-7">
+          <div className="flex items-center justify-end mb-3">
             <div>
               <input
                 type="text"
@@ -40,6 +40,7 @@ const UserManagementPage: React.FC = () => {
             <Button
               text="Add"
               onClick={handleAddClick} 
+              className='ml-4'
               />
           </div>
           <UserTable />

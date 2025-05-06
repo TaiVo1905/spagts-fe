@@ -33,8 +33,8 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
   };
 
   return (
-    <div className="w-[300px] bg-(--light-color) border-r border-gray-300 p-4 box-border poppins-regular">
-      <div className='overflow-auto h-[calc(100vh-120px)]'>
+    <div className="w-[300px] bg-(--light-color) border-r border-gray-300 p-4 box-border poppins-regular mt-0.5">
+      <div className='overflow-auto h-[calc(100vh-120px)] tailwind-custom-scrollbar'>
       {menuItems.map((item) => (
         <div key={item.link} className="mb-2">
               <div
