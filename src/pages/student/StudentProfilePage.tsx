@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import '../styles/StudentProfile.css';
+import React, { useState } from "react";
+import '../../styles/StudentProfile.css';
 
-const StudentProfile: React.FC = () => {
-  const [currentPassword, setCurrentPassword] = useState('');
+const StudentProfilePage: React.FC = () => {
+    const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -78,6 +78,6 @@ const StudentProfile: React.FC = () => {
       </div>
     </div>
   );
-};
+}
 
-export default StudentProfile;
+export default StudentProfilePage;

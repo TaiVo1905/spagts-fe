@@ -1,14 +1,8 @@
-import ClassCard from "../components/ClassCard";
-import Sidebar from "../components/Sidebar";
-import MainLayout from "../layouts/MainLayout";
+import ClassCard from "../../components/ClassCard.tsx";
 import React, { useState } from "react";
-import Header from "../components/Header";
-import Avatar from "../components/Avatar";
-import menuItems from "../utils/menuItemsForStudentRole.tsx";
-import Pagination from "../components/Pagination.tsx";
+import Pagination from "../../components/Pagination.tsx";
 
-const ClassManagement: React.FC = () => {
-    const menuItemsForStudentRole = menuItems;
+const ClassManagementPage: React.FC = () => {
     const [page, setPage] = useState(1);
     const startIndex = (page - 1) * 12;
     const endIndex = startIndex + 12;
@@ -118,18 +112,6 @@ const ClassManagement: React.FC = () => {
     ]
     const paginatedClasses = classes.slice(startIndex, endIndex);
     return (
-        <MainLayout
-            Header = {<Header
-                Avatar={
-                    <Avatar
-                        name="Nguyễn Thị Thùy Trang"
-                        imageUrl="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-                        className="w-[48px] h-[48px]"
-                    />
-                }
-            />}
-            Sidebar = {<Sidebar menuItems={menuItemsForStudentRole}></Sidebar>}
-            Content = {
                 <>
                     <div className="flex flex-wrap w-[100%] justify-center content-start px-[16px] overflow-auto h-[calc(100vh-120px)]">
                     {paginatedClasses.map((cls) => (
@@ -146,11 +128,7 @@ const ClassManagement: React.FC = () => {
                     onPageChange={setPage}
                     ></Pagination>
                 </>
-            }
-        >
-
-        </MainLayout>
     );
 }
 
-export default ClassManagement;
+export default ClassManagementPage;
