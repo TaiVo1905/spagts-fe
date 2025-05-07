@@ -1,12 +1,15 @@
-import { Outlet } from 'react-router-dom';
 import loginImage from '../assets/login-illustration.png';
+import React from 'react';
+interface Props {
+    Form: React.ReactNode
+}
 
-const AuthLayout = () => {
+const AuthLayout: React.FC<Props> = ({Form}) => {
     return (
         <div className="min-h-screen flex items-center justify-center px-4">
             <div className="rounded-lg flex w-full max-w-6xl overflow-hidden">
                 <div className="w-full md:w-1/2 p-6 md:p-10">
-                    <Outlet />
+                    {Form}
                 </div>
                 <div className="hidden md:flex w-1/2 items-center justify-center">
                     <img

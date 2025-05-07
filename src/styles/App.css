@@ -9,10 +9,10 @@
 
 #root {
   /* max-width: 1280px; */
-  /* margin: 0 auto; */
+  margin: 0 auto;
   /* padding: 2rem; */
   /* text-align: center; */
-  /* font-family: 'Poppins', sans-serif; */
+  font-family: 'Poppins', sans-serif;
 }
 
 .poppins-regular {
@@ -45,3 +45,16 @@
   font-style: normal;
 }
 
+/* In your CSS file */
+.tailwind-custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tailwind-custom-scrollbar::-webkit-scrollbar-track {
+  background: none;
+}
+
+.tailwind-custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50px;
+}

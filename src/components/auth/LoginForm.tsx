@@ -1,11 +1,11 @@
 import PasswordInput from "../PasswordInput";
-import Input from "../Form/Input";
-import Button from "../Form/Button";
-import { useState } from "react";
+import Input from "../Input";
+import Button from "../form/Button";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 
-const LoginForm = () => {
+const LoginForm: React.FC = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();

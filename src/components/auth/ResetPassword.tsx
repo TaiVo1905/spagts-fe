@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PasswordInput from "../../components/PasswordInput.tsx";
+import PasswordInput from "../PasswordInput.tsx";
 import { FaLock } from "react-icons/fa";
 
 const ResetPassword = () => {

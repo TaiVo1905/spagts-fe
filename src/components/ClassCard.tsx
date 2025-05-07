@@ -9,7 +9,7 @@ interface TeacherProps {
 
 const Teacher: React.FC<TeacherProps> = ({ title, name, imageUrl }) => {
   return (
-    <div className="relative w-[249px] h-[186px] border border-gray-300 rounded-[15px] shadow-md overflow-hidden m-5 bg-white transform transition duration-300 hover:scale-105 hover:shadow-lg">
+    <div className="relative w-[249px] h-[186px] border border-gray-300 rounded-[15px] shadow-md overflow-hidden m-5 bg-(--light-color) transform transition duration-300 hover:scale-105 hover:shadow-lg">
       
       <div
         className="h-[60px] bg-cover bg-center relative"
@@ -30,7 +30,7 @@ const Teacher: React.FC<TeacherProps> = ({ title, name, imageUrl }) => {
         <h2 className="text-[20px] font-bold mb-2">{title}</h2>
         <p className="text-[16px] text-gray-800">{name}</p>
 
-        <div className="flex justify-end text-[#21BAEA] text-[25px] mt-2 cursor-pointer hover:text-[#1DA1F2] transition">
+        <div className="flex justify-end text-(--primary-color) text-[25px] mt-2 cursor-pointer hover:text-(--primary-color)/90 transition">
           <FaUserFriends />
         </div>
       </div>

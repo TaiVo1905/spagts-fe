@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import InputCode from '../../components/InputCode.tsx';
+import InputCode from '../InputCode.tsx';
 
 const VerifyCode = () => {
     const [code, setCode] = useState(['', '', '', '']);
