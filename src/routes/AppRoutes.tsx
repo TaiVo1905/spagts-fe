@@ -1,17 +1,23 @@
-// src/AppRouter.tsx
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import RootLayout from "../layouts/RootLayout";
 import adminRoutes from "./AdminRoutes";
 import studentRoutes from "./StudentRoutes";
 import authRoutes from "./AuthRoutes";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 const router = createBrowserRouter([
-  adminRoutes,
-  ...authRoutes,
-  studentRoutes
-])
+  {
+    path: "/",
+    element: <RootLayout />,
+    children: [
+      adminRoutes,
+      studentRoutes,
+      ...authRoutes,
+    ],
+  },
+]);
 
 const AppRoutes = () => {
-  return (<RouterProvider router={router} />);
+  return <RouterProvider router={router} />;
 };
 
 export default AppRoutes;

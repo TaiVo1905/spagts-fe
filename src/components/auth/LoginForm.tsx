@@ -1,57 +1,94 @@
 import PasswordInput from "../PasswordInput";
 import Input from "../Input";
-import Button from "../form/Button";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaEnvelope, FaLock } from "react-icons/fa";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FaEnvelope, FaLock, FaSpinner } from "react-icons/fa";
+import { useAuth } from "../../store/AuthContext";
+import { Toaster, toast } from "react-hot-toast";
 
 const LoginForm: React.FC = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
-    const handleForgotPassword = () => {
-        navigate("/enter-email");
-    };
+  const handleForgotPassword = () => {
+    navigate("/forgot-password", { state: { from: location.state?.from } });
+  };
 
-    return (
-        <div className="w-full max-w-lg mx-auto bg-white p-10 rounded-xl shadow-lg transition-all duration-300">
-            <h2 className="text-3xl font-bold text-purple-900 mb-3 text-center">Login</h2>
-            <p className="text-base text-gray-600 mb-8 text-center">
-                Please fill your details to access your account.
-            </p>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-            <form className="space-y-6">
-                <Input
-                    label="Email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="youremail@example.com"
-                    icon={<FaEnvelope className="text-gray-400 text-lg" />}
-                />
-                <PasswordInput
-                    label="Password"
-                    value={password}
-                    onChange={setPassword}
-                    placeholder="********"
-                    icon={<FaLock className="text-gray-400 text-lg" />}
-                />
+    try {
+      await login(email, password);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                <div className="flex justify-between items-center text-base">
-                    <div></div>
-                    <span
-                        onClick={handleForgotPassword}
-                        className="text-pink-600 hover:text-pink-700 hover:underline cursor-pointer transition-colors duration-200"
-                    >
-                        Forgot Password?
-                    </span>
-                </div>
-
-                <Button text="Sign in"  />
-            </form>
+  return (
+    <>
+      <Toaster position="top-right" reverseOrder={true} />
+      <div className="w-full max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
+          <p className="text-gray-600 mt-2">
+            Sign in to access your account
+          </p>
         </div>
-    );
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            icon={<FaEnvelope className="text-gray-400" />}
+          />
+          
+          <PasswordInput
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+            icon={<FaLock className="text-gray-400" />}
+          />
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-sky-500 hover:text-sky-600"
+            >
+              Forgot password?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex justify-center items-center gap-2 bg-sky-500 text-white py-2 rounded hover:bg-sky-600 transition disabled:opacity-70"
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
+          </button>
+        </form>
+      </div>
+    </>
+  );
 };
 
 export default LoginForm;
