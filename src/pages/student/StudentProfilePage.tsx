@@ -1,47 +1,88 @@
 import React, { useState } from "react";
 import '../../styles/StudentProfile.css';
+import { studentService } from '../../services/studentService';
 
 const StudentProfilePage: React.FC = () => {
-    const [currentPassword, setCurrentPassword] = useState('');
+  const [name, setName] = useState('Vo Thi Thu Hien');
+  const [email, setEmail] = useState('vothithuhien1315@gmail.com');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSaveChanges = () => {
     console.log('Save changes:', { currentPassword, newPassword, confirmPassword });
+  };
+
+  const handleUpdateField = async (field: 'name' | 'email', value: string) => {
+    setError('');
+    setSuccess('');
+
+    try {
+      const data = { [field]: value };
+      await studentService.updateProfile(1, data);
+
+      setSuccess(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || `Failed to update ${field}`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'name' | 'email') => {
+    if (e.key === 'Enter') {
+      handleUpdateField(field, field === 'name' ? name : email);
+    }
   };
 
   return (
     <div className="profile-container">
       <h2>Personal Information</h2>
       <div className="personal-info">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQksR3Lt2Iy2rlmUKvJmc27GcXpe297gINhTA&s" alt="Profile" className="profile-image" />
+        <img
+          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQksR3Lt2Iy2rlmUKvJmc27GcXpe297gINhTA&s"
+          alt="Profile"
+          className="profile-image"
+        />
         <div className="info">
-          <p className="name">Võ Thị Thu Hiền</p>
+          <p className="name">{name}</p>
           <p className="class">PNV26B</p>
-          <p className="email">vothithuhien1315@gmail.com</p>
+          <p className="email">{email}</p>
         </div>
       </div>
       <div className="personal-info">
         <div className="info-item">
-          <label htmlFor="name" className='title-input'>Name:</label>
-          <input type="text" placeholder='Vo Thi Thu Hien' id='name' />
+          <label htmlFor="name" className="title-input">Name:</label>
+          <input
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, 'name')}
+          />
         </div>
-        
         <div className="info-item">
-          <label htmlFor="class" className='title-input'>Class:</label>
-          <input type="text" placeholder='Class A' id='class' />
+          <label htmlFor="class" className="title-input">Class:</label>
+          <input type="text" placeholder="Class A" id="class" />
         </div>
-
         <div className="info-item">
-          <label htmlFor="email" className='title-input'>Email:</label>
-          <input type="text" placeholder='vothithuhien1315@gmail.com' id='email' />
+          <label htmlFor="email" className="title-input">Email:</label>
+          <input
+            type="text"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, 'email')}
+          />
         </div>
+        {error && <p className="error">{error}</p>}
+        {success && <p className="success">{success}</p>}
       </div>
       <div className="Password">Password</div>
       <div className="password-section">
         <div className="password-inputs">
           <div className="current-pass">
-            <label htmlFor="current-password" className='title-input'>Current password</label>
+            <label htmlFor="current-password" className="title-input">Current password</label>
             <input
               type="password"
               id="current-password"
@@ -50,8 +91,8 @@ const StudentProfilePage: React.FC = () => {
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
           </div>
-           <div className="new-pass">
-            <label htmlFor="new-password" className='title-input'>New password</label>
+          <div className="new-pass">
+            <label htmlFor="new-password" className="title-input">New password</label>
             <input
               type="password"
               id="new-password"
@@ -61,7 +102,7 @@ const StudentProfilePage: React.FC = () => {
             />
           </div>
           <div className="confirm-pass">
-            <label htmlFor="confirm-password" className='title-input'>Confirm password</label>
+            <label htmlFor="confirm-password" className="title-input">Confirm password</label>
             <input
               type="password"
               id="confirm-password"
@@ -71,13 +112,12 @@ const StudentProfilePage: React.FC = () => {
             />
           </div>
           <button onClick={handleSaveChanges} className="save-button">
-          Save Changes
-        </button>
+            Save Changes
+          </button>
         </div>
-        
       </div>
     </div>
   );
-}
+};
 
 export default StudentProfilePage;
