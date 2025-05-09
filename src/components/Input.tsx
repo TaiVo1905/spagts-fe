@@ -24,6 +24,7 @@ const Input = ({ label, type, value, onChange, placeholder, icon }: Props) => (
                 onChange={onChange}
                 placeholder={placeholder}
                 className={`w-full ${icon ? 'pl-10' : 'pl-3'} pr-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200`}
+                required
             />
         </div>
     </div>
