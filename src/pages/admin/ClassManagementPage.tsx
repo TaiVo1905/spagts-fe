@@ -1,134 +1,69 @@
 import ClassCard from "../../components/ClassCard.tsx";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Pagination from "../../components/Pagination.tsx";
+import { classService } from "../../services/classService";
+import { toast } from 'react-hot-toast';
+import LoadingToFetchData from "../../components/LoadingToFetchData.tsx";
+import { Class } from "../../interface/Interface.ts";
 
 const ClassManagementPage: React.FC = () => {
     const [page, setPage] = useState(1);
-    const startIndex = (page - 1) * 12;
-    const endIndex = startIndex + 12;
-    
-    const classes = [
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        },
-        {
-            title: "IT English",
-            name: "Nguyễn Thị Thùy Trang",
-            imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
-        }
+    const [classes, setClasses] = useState<Class[]>([]);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    ]
-    const paginatedClasses = classes.slice(startIndex, endIndex);
+    const fetchClasses = async (pageNumber: number) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await classService.getClasses(pageNumber);
+            setClasses(response.data);
+            setTotalPages(response.meta?.last_page || 1);
+        } catch (err) {
+            setError('Failed to fetch classes');
+            toast.error('Failed to load classes');
+            console.error('Error fetching classes:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchClasses(page);
+    }, [page]);
+
+    if (loading) {
+        return (<LoadingToFetchData/>);
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-red-500">{error}</div>
+            </div>
+        );
+    }
+
     return (
-                <>
-                    <div className="flex flex-wrap w-[100%] justify-center content-start px-[16px] overflow-auto h-[calc(100vh-120px)]">
-                    {paginatedClasses.map((cls) => (
-                        <ClassCard
-                            key={cls.imageUrl}
-                            title={cls.title}
-                            name={cls.name}
-                            imageUrl={cls.imageUrl}
-                        />
-                    ))}
-                    </div>
-                    <Pagination currentPage={page}
-                    totalPages={Math.ceil(classes.length/10)}
-                    onPageChange={setPage}
-                    ></Pagination>
-                </>
+        <>
+            <div className="flex flex-wrap w-[100%] justify-center content-start px-[16px] overflow-auto h-[calc(100vh-120px)]">
+                {classes.map((cls) => (
+                    <ClassCard
+                        key={cls.id}
+                        title={cls.title}
+                        name={cls.name}
+                        imageUrl={cls.imageUrl}
+                    />
+                ))}
+            </div>
+            <Pagination 
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+            />
+        </>
     );
-}
+};
 
 export default ClassManagementPage;

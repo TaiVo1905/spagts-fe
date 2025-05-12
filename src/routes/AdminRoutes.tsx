@@ -1,20 +1,14 @@
-import { RouteObject } from "react-router-dom";
-import ClassManagementPage from "../pages/admin/ClassManagementPage";
-import UserManagementPage from "../pages/admin/UserManagementPage";
-import AdminLayout from "../layouts/AdminLayout";
-import { ProtectedRoute } from "./ProtectedRoute";
+import { RouteObject } from 'react-router-dom';
+import UserManagementPage from '../pages/admin/UserManagementPage';
+import ClassManagementPage from '../pages/admin/ClassManagementPage';
 
-const adminRoutes: RouteObject = {
-  path: "/admin",
-  element: (
-    <ProtectedRoute roles={['Admin']}>
-      <AdminLayout />
-    </ProtectedRoute>
-  ),
-  children: [
-    { path: "user-management", element: <UserManagementPage /> },
-    { path: "class-management", element: <ClassManagementPage /> },
-  ],
-};
-
-export default adminRoutes;
+export const adminRoutes: RouteObject[] = [
+  {
+    path: 'user-management',
+    element: <UserManagementPage />
+  },
+  {
+    path: 'class-management',
+    element: <ClassManagementPage />
+  }
+];

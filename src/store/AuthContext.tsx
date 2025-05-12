@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { authService, User } from '../services/authService';
+import { authService } from '../services/authService';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { User } from '../interface/Interface';
 
 interface AuthContextType {
   user: User | null;
