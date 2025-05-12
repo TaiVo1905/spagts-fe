@@ -1,11 +1,15 @@
 import { useAuth } from '../store/AuthContext';
 
+export type UserRole = 'Admin' | 'Teacher' | 'Student';
+
 export const useRole = () => {
   const { user } = useAuth();
+  const role = user?.roles as UserRole | undefined;
   
-  const isAdmin = user?.roles === 'Admin';
-  const isTeacher = user?.roles === 'Teacher';
-  const isStudent = user?.roles === 'Student';
-  
-  return { isAdmin, isTeacher, isStudent, roles: user?.roles };
+  return { 
+    role,
+    isAdmin: role === 'Admin',
+    isTeacher: role === 'Teacher',
+    isStudent: role === 'Student'
+  };
 };

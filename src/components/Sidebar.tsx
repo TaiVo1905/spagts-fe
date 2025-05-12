@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/App.css'
 import 'tailwind-scrollbar';
+import { useRole } from '../utils/useRole';
 
 
 interface MenuItem {
@@ -19,7 +20,10 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [activeItem, setActiveItem] = useState<string>('');
-
+  const {isAdmin, isStudent, isTeacher} = useRole();
+  useEffect( () => {
+    isAdmin ? setActiveItem('./dashboard') : isStudent ? setActiveItem('./profile') : setActiveItem('./teacher');
+  }, [isAdmin, isStudent, isTeacher])
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({
       ...prev,
