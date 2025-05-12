@@ -18,7 +18,7 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, onSuccess }) => {
 
   if (!open) return null;
 
-  // Đóng modal khi click overlay
+  
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();

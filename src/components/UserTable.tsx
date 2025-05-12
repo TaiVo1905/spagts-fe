@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaCaretDown, FaTrash, FaAngleDown, FaEdit } from "react-icons/fa";
 import LoadingToFetchData from "./LoadingToFetchData";
-import axiosClient from "../services/axiosClient"; // Đường dẫn tùy cấu trúc project của bạn
+import axiosClient from "../services/axiosClient";
 
 interface User {
   id: number;
