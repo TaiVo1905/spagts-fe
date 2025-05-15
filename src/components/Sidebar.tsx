@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/App.css'
 import 'tailwind-scrollbar';
 import { useRole } from '../utils/useRole';
@@ -18,11 +18,13 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
   const navigate = useNavigate();
+  const location = useLocation()
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [activeItem, setActiveItem] = useState<string>('');
   const {isAdmin, isStudent, isTeacher} = useRole();
+  console.log(location)
   useEffect( () => {
-    isAdmin ? setActiveItem('./dashboard') : isStudent ? setActiveItem('./profile') : setActiveItem('./teacher');
+    ( isAdmin || isStudent || isTeacher ) && setActiveItem(location.pathname);
   }, [isAdmin, isStudent, isTeacher])
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({
@@ -83,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
                         {child.children.map((subChild) => (
                           <div
                             key={subChild.link}
-                            className={`flex items-center gap-2 p-2 rounded hover:bg-(--primary-color)/90 ${
+                            className={`flex items-center gap-2 p-2 cursor-pointer rounded hover:bg-(--primary-color)/90 ${
                               activeItem === subChild.link ? 'bg-(--primary-color) text-(--text-color)' : 'text-gray-700'
                             }`}
                             onClick={() => handleItemClick(subChild.link)}

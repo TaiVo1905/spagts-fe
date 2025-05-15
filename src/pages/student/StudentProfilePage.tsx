@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import '../../styles/StudentProfile.css';
+import React, { useEffect, useState, useRef } from "react";
 import userService from '../../services/userService';
 import { useAuth } from '../../store/AuthContext';
 import { Toaster, toast } from "react-hot-toast";
 import LoadingToFetchData from "../../components/LoadingToFetchData";
+import { FaEye, FaEyeSlash, FaCamera } from 'react-icons/fa';
 
 const StudentProfilePage: React.FC = () => {
   const { user, loading } = useAuth();
@@ -12,8 +12,11 @@ const StudentProfilePage: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (user) {
@@ -24,12 +27,9 @@ const StudentProfilePage: React.FC = () => {
 
   const handleSaveChanges = async () => {
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+      toast.error('New passwords do not match');
       return;
     }
-
-    setError('');
-    setSuccess('');
 
     try {
       const data = {
@@ -39,28 +39,24 @@ const StudentProfilePage: React.FC = () => {
       };
       
       await userService.updatePassword(user?.id || 0, data);
-      setSuccess('Password updated successfully');
+      toast.success('Password updated successfully');
       
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update password');
+      toast.error(err.response?.data?.message || 'Failed to update password');
     }
   };
 
   const handleUpdateField = async (field: 'name' | 'email', value: string) => {
     if (!user?.id) return;
 
-    setError('');
-    setSuccess('');
-
     try {
       const data = { [field]: value };
-      await userService.updateProfile(user.id, data);
-      setSuccess(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
+      await userService.updateProfile(user.id, data) && toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
     } catch (err: any) {
-      setError(err.response?.data?.message || `Failed to update ${field}`);
+      toast.error(err.response?.data?.message || `Failed to update ${field}`);
     }
   };
 
@@ -70,98 +66,161 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <LoadingToFetchData/>
-    );
-  }
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  useEffect( () => {
-    if(error.length > 0) {
-      toast.error(error);
+    setIsUploading(true);
+
+    try {
+      const imageUrl = await userService.uploadAvatar(file);
+      toast.success('Avatar updated successfully');
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update avatar');
+    } finally {
+      setIsUploading(false);
     }
-    if(success.length > 0) {
-      toast.success(success);
-    }
-  }, [error, success]);
+  };
+
+  if (loading) {
+    return <LoadingToFetchData/>;
+  }
 
   return (
     <>
-      <Toaster position="top-right" reverseOrder={true} />
-      <div className="profile-container">
-        <h2>Personal Information</h2>
-        <div className="personal-info">
-          <img
-            src={user?.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"}
-            alt="Profile"
-            className="profile-image"
-          />
-          <div className="info">
-            <p className="name">{name}</p>
-            <p className="class">PNV26B</p>
-            <p className="email">{email}</p>
+      <Toaster 
+        position="top-right"
+      />
+      <div className="w-full bg-white ml-[18px] mt-[21px] mr-[35px]">
+        <h2 className="leading-[60px] text-[25px] font-bold border-b border-[#C5C1C1]">Personal Information</h2>
+        <div className="flex items-center mb-5 mt-5">
+          <div className="relative w-[120px] h-[120px] mr-5">
+            <img
+              src={user?.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"}
+              alt="Profile"
+              className="w-[120px] h-[120px] rounded-full object-cover"
+            />
+            <div 
+              className="absolute inset-0 bg-black/50 rounded-full flex justify-center items-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity duration-300"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <FaCamera className="text-white text-2xl" />
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleAvatarUpload}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+          <div className="flex flex-col">
+            <p className="text-xl font-bold">{name}</p>
+            <p className="text-sm text-gray-600 my-1">PNV26B</p>
+            <p className="text-sm text-gray-600 my-1">{email}</p>
           </div>
         </div>
-        <div className="personal-info">
-          <div className="info-item">
-            <label htmlFor="name" className="title-input">Name:</label>
+        <div className="flex mb-5 rounded gap-[30px]">
+          <div className="flex-1 mx-2.5">
+            <label htmlFor="name" className="text-sm text-[#85877E] font-bold block mb-1.5">Name:</label>
             <input
               type="text"
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, 'name')}
+              className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
             />
           </div>
-          <div className="info-item">
-            <label htmlFor="class" className="title-input">Class:</label>
-            <input type="text" placeholder="Class A" id="class" />
+          <div className="flex-1 mx-2.5">
+            <label htmlFor="class" className="text-sm text-[#85877E] font-bold block mb-1.5">Class:</label>
+            <input 
+              type="text" 
+              placeholder="Class A" 
+              id="class"
+              className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
+            />
           </div>
-          <div className="info-item">
-            <label htmlFor="email" className="title-input">Email:</label>
+          <div className="flex-1 mx-2.5">
+            <label htmlFor="email" className="text-sm text-[#85877E] font-bold block mb-1.5">Email:</label>
             <input
               type="text"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, 'email')}
+              className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
             />
           </div>
         </div>
-        <div className="Password">Password</div>
-        <div className="password-section">
-          <div className="password-inputs">
-            <div className="current-pass">
-              <label htmlFor="current_password" className="title-input">Current password</label>
-              <input
-                type="password"
-                id="current_password"
-                placeholder="Current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
+        <div className="font-bold text-2xl text-left leading-[50px] border-b border-[#C5C1C1]">Password</div>
+        <div className="mt-[30px] w-full flex flex-row gap-[30px] items-center">
+          <div className="w-full flex flex-row justify-between items-center mb-2.5">
+            <div className="text-sm w-1/4 flex flex-col gap-2.5">
+              <label htmlFor="current_password" className="text-sm text-[#85877E] font-bold block mb-1.5">Current password</label>
+              <div className="relative w-full">
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  id="current_password"
+                  placeholder="Current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full pr-10 border border-[#EEEEEE] h-12 pl-5 rounded-lg"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-[#85877E] p-1.5 flex items-center justify-center hover:text-[#00BFFF]"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
             </div>
-            <div className="new-pass">
-              <label htmlFor="password" className="title-input">New password</label>
-              <input
-                type="password"
-                id="password"
-                placeholder="New password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+            <div className="text-sm w-1/4 flex flex-col gap-2.5">
+              <label htmlFor="password" className="text-sm text-[#85877E] font-bold block mb-1.5">New password</label>
+              <div className="relative w-full">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  id="password"
+                  placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full pr-10 border border-[#EEEEEE] h-12 pl-5 rounded-lg"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-[#85877E] p-1.5 flex items-center justify-center hover:text-[#00BFFF]"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
             </div>
-            <div className="confirm-pass">
-              <label htmlFor="confirmPassword" className="title-input">Confirm password</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                placeholder="Confirm password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+            <div className="text-sm w-1/4 flex flex-col gap-2.5">
+              <label htmlFor="confirmPassword" className="text-sm text-[#85877E] font-bold block mb-1.5">Confirm password</label>
+              <div className="relative w-full">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  id="confirmPassword"
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full pr-10 border border-[#EEEEEE] h-12 pl-5 rounded-lg"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-[#85877E] p-1.5 flex items-center justify-center hover:text-[#00BFFF]"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
             </div>
-            <button onClick={handleSaveChanges} className="save-button">
+            <button 
+              onClick={handleSaveChanges} 
+              className="inline-block px-5 py-2.5 bg-[#00BFFF] border-none rounded-full text-white text-base text-center cursor-pointer relative top-[15px] hover:bg-[#0056b3]"
+            >
               Save Changes
             </button>
           </div>
