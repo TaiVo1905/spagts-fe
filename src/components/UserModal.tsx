@@ -15,7 +15,6 @@ const tabList = [
 
 const UserModal: React.FC<UserModalProps> = ({ open, onClose, onSuccess }) => {
   const [tab, setTab] = useState<'add' | 'import'>('add');
-
   if (!open) return null;
 
   

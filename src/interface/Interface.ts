@@ -12,3 +12,11 @@ export interface Class {
   name: string;
   imageUrl: string;
 }
+
+export interface Certificate {
+  id: number;
+  imageUrl: string;
+  module: string;
+  date: Date;
+  description: string;
+}
