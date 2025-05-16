@@ -5,13 +5,22 @@ import { classService } from "../../services/classService";
 import { toast } from 'react-hot-toast';
 import LoadingToFetchData from "../../components/LoadingToFetchData.tsx";
 import { Class } from "../../interface/Interface.ts";
+import Button from "../../components/Button.tsx";
+import ClassModal from "../../components/ClassModal.tsx";
+import UserModal from "../../components/UserModal.tsx";
 
 const ClassManagementPage: React.FC = () => {
+      const [modalOpen, setModalOpen] = useState(false);
+        const [reload, setReload] = useState(false);
+
     const [page, setPage] = useState(1);
     const [classes, setClasses] = useState<Class[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [editingClass, setEditingClass] = useState<Class | null>(null);
+    const [editClass, setEditClass] = useState(false);
+    
 
     const fetchClasses = async (pageNumber: number) => {
         try {
@@ -31,7 +40,7 @@ const ClassManagementPage: React.FC = () => {
 
     useEffect(() => {
         fetchClasses(page);
-    }, [page]);
+    }, [page, reload]);
 
     if (loading) {
         return (<LoadingToFetchData/>);
@@ -44,16 +53,54 @@ const ClassManagementPage: React.FC = () => {
             </div>
         );
     }
+    const handleAddClick = () => {
+        setEditingClass(null);
+        setEditClass(false);
+        setModalOpen(true);
+    };
+    const handleModalSuccess = () => {
+    setModalOpen(false);
+    setReload(r => !r); // toggle reload
+  };
 
     return (
-        <>
-            <div className="flex flex-wrap w-[100%] justify-center content-start px-[16px] overflow-auto h-[calc(100vh-120px)]">
+        <div className="p-4 w-full">
+            <div className="flex items-center justify-end mb-3">
+                <div>
+                <input
+                    type="text"
+                    placeholder="Search"
+                    className="border rounded px-3 py-1"
+                />
+                </div>
+                <Button
+                text="Add"
+                onClick={handleAddClick}
+                className='ml-4'
+                />
+            </div>
+            <div className="flex flex-wrap w-[calc(100vw-300px)]  content-start px-[16px] overflow-auto h-[calc(100vh-120px)]">
                 {classes.map((cls) => (
                     <ClassCard
                         key={cls.id}
-                        title={cls.title}
-                        name={cls.name}
-                        imageUrl={cls.imageUrl}
+                        teacherName={cls.teacher.name}
+                        className={cls.name}
+                        imageUrl={cls.teacher.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"}
+                        onEdit={() => {
+                            setEditingClass(cls);
+                            setEditClass(true);
+                            setModalOpen(true);
+                        }}
+                        onDelete={async () => {
+                          if (window.confirm('Are you sure you want to delete this class?')) {
+                            try {
+                              await classService.deleteClass(cls.id);
+                              setReload(r => !r);
+                            } catch (err) {
+                              toast.error('Failed to delete class');
+                            }
+                          }
+                        }}
                     />
                 ))}
             </div>
@@ -62,7 +109,15 @@ const ClassManagementPage: React.FC = () => {
                 totalPages={totalPages}
                 onPageChange={setPage}
             />
-        </>
+      <ClassModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingClass(null); setEditClass(false); }}
+        onSuccess={() => { setModalOpen(false); setEditingClass(null); setEditClass(false); setReload(r => !r); }}
+        initialStateEdit={editingClass}
+        editClass={editClass}
+      />
+
+        </div>
     );
 };
 

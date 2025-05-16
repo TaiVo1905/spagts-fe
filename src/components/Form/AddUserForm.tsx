@@ -3,17 +3,12 @@ import userService, { AddUserPayload } from '../../services/userService';
 
 interface AddUserFormProps {
   onSuccess?: () => void;
+  initialState: AddUserPayload;
 }
 
-const initialState: AddUserPayload = {
-  name: '',
-  email: '',
-  roles: 'Student',
-  password: '',
-  password_confirmation: '',
-};
 
-const AddUserForm: React.FC<AddUserFormProps> = ({ onSuccess }) => {
+
+const AddUserForm: React.FC<AddUserFormProps> = ({ onSuccess, initialState }) => {
   const [form, setForm] = useState<AddUserPayload>(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -4,13 +4,13 @@ export interface User {
   email: string;
   imageUrl: string;
   roles: 'Admin' | 'Teacher' | 'Student';
+  created_at: string;
 }
 
 export interface Class {
   id: number;
-  title: string;
+  teacher: User;
   name: string;
-  imageUrl: string;
 }
 
 export interface Certificate {
