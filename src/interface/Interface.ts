@@ -12,3 +12,11 @@ export interface Class {
   teacher: User;
   name: string;
 }
+
+export interface Certificate {
+  id: number;
+  imageUrl: string;
+  module: string;
+  date: Date;
+  description: string;
+}

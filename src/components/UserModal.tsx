@@ -26,7 +26,6 @@ const initialStateAdd: AddUserPayload = {
 
 const UserModal: React.FC<UserModalProps> = ({ open, editUser = false, onClose, onSuccess, initialStateEdit }) => {
   const [tab, setTab] = useState<'add' | 'import'>('add');
-
   if (!open) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
