@@ -1,5 +1,5 @@
 // src/components/calendar/Calendar.tsx
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -17,41 +17,35 @@ export const Calendar = () => {
     deleteEvent,
     setCurrentEvent,
     currentEvent,
-    fetchEvents,
   } = useTimetable();
   
   const calendarRef = useRef<FullCalendar>(null);
   const modalRef = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
-    if (calendarRef.current) {
-      calendarRef.current.getApi().refetchEvents();
-    }
-  }, [events]);
-
   const handleDateClick = (arg: any) => {
+    // Convert to local timezone to avoid date shifting
     const localDate = new Date(arg.date);
     setCurrentEvent({
       title: '',
       start: localDate,
-      end: new Date(localDate.getTime() + 60 * 60 * 1000),
+      end: new Date(localDate.getTime() + 60 * 60 * 1000), // Add 1 hour for end time
       allDay: arg.allDay,
     });
     modalRef.current?.showModal();
   };
 
   const handleEventClick = (arg: any) => {
-    setCurrentEvent({
-      id: arg.event.id,
-      title: arg.event.title,
-      description: arg.event.extendedProps.description,
-      start: arg.event.start ? new Date(arg.event.start) : new Date(),
-      end: arg.event.end ? new Date(arg.event.end) : new Date(arg.event.start ? new Date(arg.event.start).getTime() + 60 * 60 * 1000 : Date.now() + 60 * 60 * 1000),
-      allDay: arg.event.allDay,
-      color: arg.event.backgroundColor,
-    });
-    modalRef.current?.showModal();
-  };
+  setCurrentEvent({
+    id: arg.event.id,
+    title: arg.event.title,
+    description: arg.event.extendedProps.description,
+    start: arg.event.start ? new Date(arg.event.start) : new Date(),
+    end: arg.event.end ? new Date(arg.event.end) : new Date(arg.event.start ? new Date(arg.event.start).getTime() + 60 * 60 * 1000 : Date.now() + 60 * 60 * 1000),
+    allDay: arg.event.allDay,
+    color: arg.event.backgroundColor,
+  });
+  modalRef.current?.showModal();
+};
 
   const handleEventDrop = async (arg: EventDropArg) => {
     try {
@@ -62,7 +56,6 @@ export const Calendar = () => {
         allDay: arg.event.allDay,
       };
       await updateEvent(Number(arg.event.id), event);
-      await fetchEvents();
     } catch (error) {
       arg.revert();
       toast.error('Failed to update event');
@@ -78,7 +71,6 @@ export const Calendar = () => {
         allDay: arg.event.allDay,
       };
       await updateEvent(Number(arg.event.id), event);
-      await fetchEvents();
     } catch (error) {
       arg.revert();
       toast.error('Failed to update event');
@@ -86,27 +78,15 @@ export const Calendar = () => {
   };
 
   const formatEvents = (events: any[]): EventInput[] => {
-    return events.map((event) => {
-      const start = new Date(event.start);
-      const end = new Date(event.end);
-      
-      if (event.allDay) {
-        end.setHours(23, 59, 59, 999);
-      }
-
-      return {
-        id: event.id?.toString(),
-        title: event.title,
-        description: event.description,
-        start: start,
-        end: end,
-        allDay: event.allDay,
-        backgroundColor: event.color,
-        extendedProps: {
-          description: event.description,
-        },
-      };
-    });
+    return events.map((event) => ({
+      id: event.id?.toString(),
+      title: event.title,
+      description: event.description,
+      start: event.start,
+      end: event.end,
+      allDay: event.allDay,
+      backgroundColor: event.color,
+    }));
   };
 
   return (
@@ -117,7 +97,7 @@ export const Calendar = () => {
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           headerToolbar={{
-            left: 'prev,next',
+            left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
@@ -132,8 +112,6 @@ export const Calendar = () => {
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           height="auto"
-          allDaySlot={true}
-          allDayText="All Day"
         />
       </div>
 
@@ -146,13 +124,11 @@ export const Calendar = () => {
           } else {
             await createEvent(eventData);
           }
-          await fetchEvents();
           modalRef.current?.close();
         }}
         onDelete={async (id) => {
           if (id) {
             await deleteEvent(id);
-            await fetchEvents();
             modalRef.current?.close();
           }
         }}

@@ -8,7 +8,7 @@ interface UserModalProps {
   editUser?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  initialStateEdit: AddUserPayload
+  initialStateEdit?: AddUserPayload;
 }
 
 const tabList = [
@@ -29,7 +29,6 @@ const UserModal: React.FC<UserModalProps> = ({ open, editUser = false, onClose, 
 
   if (!open) return null;
 
-  
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -42,42 +41,44 @@ const UserModal: React.FC<UserModalProps> = ({ open, editUser = false, onClose, 
       onClick={handleOverlayClick}
     >
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative" onClick={e => e.stopPropagation()}>
-        {!editUser && (
+        {(
           <div className="flex border-b mb-4">
-          {tabList.map((t) => (
-            <button
-              key={t.key}
-              className={`flex-1 py-2 text-center font-medium transition-colors ${tab === t.key ? 'text-white bg-sky-500 rounded-t-lg' : 'text-gray-700 bg-gray-100'} `}
-              onClick={() => setTab(t.key as 'add' | 'import')}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+            {tabList.map((t) => (
+              <button
+                key={t.key}
+                className={`flex-1 py-2 text-center font-medium transition-colors ${tab === t.key ? 'text-white bg-sky-500 rounded-t-lg' : 'text-gray-700 bg-gray-100'}`}
+                onClick={() => setTab(t.key as 'add' | 'import')}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         )}
+        
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
           onClick={onClose}
         >
           ×
         </button>
-        <div className="mt-2">
-          {(editUser && (
-            <>
-              <h2 className="text-lg font-bold mb-4">Edit User</h2>
-              <AddUserForm onSuccess={onSuccess} initialState={initialStateEdit} />
-            </>
-          ))
-          
-          || (tab === 'add' ? (
-            <>
-              <h2 className="text-lg font-bold mb-4">Add New User</h2>
-              <AddUserForm onSuccess={onSuccess} initialState={initialStateAdd} />
-            </>
-          ) : (
-            <ImportUserForm onSuccess={onSuccess} />
-          ))}
-        </div>
+
+        {(
+          <div className="mt-2">
+            {editUser ? (
+              <>
+                <h2 className="text-lg font-bold mb-4">Edit User</h2>
+                <AddUserForm onSuccess={onSuccess} initialState={initialStateEdit || initialStateAdd} />
+              </>
+            ) : tab === 'add' ? (
+              <>
+                <h2 className="text-lg font-bold mb-4">Add New User</h2>
+                <AddUserForm onSuccess={onSuccess} initialState={initialStateAdd} />
+              </>
+            ) : (
+              <ImportUserForm onSuccess={onSuccess} />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

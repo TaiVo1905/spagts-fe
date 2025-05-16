@@ -4,6 +4,8 @@ import LoadingToFetchData from "./LoadingToFetchData";
 import userService, { AddUserPayload } from "../services/userService";
 import UserModal from "./UserModal";
 import axiosClient from "../services/axiosClient";
+import Pagination from "./Pagination";
+import toast from "react-hot-toast";
 interface User {
   id: number;
   name: string;
@@ -22,13 +24,17 @@ const UserTable: React.FC<UserTableProps> = ({ reload }) => {
   const [userEdit, setUserEdit] = useState<AddUserPayload[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await userService.getUsers();
+        const response = await userService.getUsers(page, 10);
+        console.log(response)
         setUsers(response.data.data);
+        setTotalPages(response.data.meta?.last_page || 1);
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -37,7 +43,7 @@ const UserTable: React.FC<UserTableProps> = ({ reload }) => {
     };
 
     fetchUsers();
-  }, [reload]);
+  }, [page, reload]);
 
   const handleEditUser = async (id: number) => {
     try {
@@ -140,6 +146,11 @@ const UserTable: React.FC<UserTableProps> = ({ reload }) => {
             initialStateEdit={userEdit}
         />
       </div>
+      <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+          />
     </>
   );
 };

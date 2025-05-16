@@ -22,7 +22,6 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [activeItem, setActiveItem] = useState<string>('');
   const {isAdmin, isStudent, isTeacher} = useRole();
-  console.log(location)
   useEffect( () => {
     ( isAdmin || isStudent || isTeacher ) && setActiveItem(location.pathname);
   }, [isAdmin, isStudent, isTeacher])

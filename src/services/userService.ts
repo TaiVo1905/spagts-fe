@@ -1,6 +1,5 @@
-import axiosClient from './axiosClient';
-
 import { User } from '../interface/Interface';
+import axiosClient from './axiosClient';
 
 import React from 'react';
 
@@ -13,8 +12,22 @@ export interface AddUserPayload {
   password_confirmation?: string;
 }
 
+interface UserResponse {
+  data: User[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
 const userService = {
-  getUsers: () => axiosClient.get('/users'),
+  getUsers: (page: number = 1, perPage: number = 10): Promise<UserResponse> => axiosClient.get('/users', {
+    params: {
+      page,
+      per_page: perPage
+    }}),
 
   addUser: (data: AddUserPayload) => axiosClient.post('/users', data),
 
@@ -31,15 +44,14 @@ const userService = {
     }
   }),
 
-  uploadAvatar: async (file: File) => {
+  uploadAvatar: async (userId: number, file: File) => {
         const formData = new FormData();
-        formData.append('imageUrl', file);
+        formData.append('image_url', file);
+        formData.append('_method', 'PATCH');
         try {
-            const response = await axiosClient.post("/users/avatar", formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const response = await axiosClient.post(`/users/${userId}`, formData
+            );
+            console.log('Upload response:', response.data);
             return response.data.imageUrl;
         } catch (error) {
             console.error('Upload error:', error);

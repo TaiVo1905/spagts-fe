@@ -16,6 +16,7 @@ const StudentProfilePage: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [avatar, setAvatar] = useState(user?.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -60,22 +61,21 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'name' | 'email') => {
     if (e.key === 'Enter') {
       handleUpdateField(field, field === 'name' ? name : email);
     }
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user?.id || !e.target.files || !e.target.files[0]) return;
     setIsUploading(true);
-
     try {
-      const imageUrl = await userService.uploadAvatar(file);
+      const file = e.target.files[0];
+      const response = await userService.uploadAvatar(user.id, file);
+      setAvatar(user.imageUrl);
       toast.success('Avatar updated successfully');
-      window.location.reload();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to update avatar');
     } finally {
@@ -83,7 +83,7 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isUploading) {
     return <LoadingToFetchData/>;
   }
 
@@ -97,7 +97,7 @@ const StudentProfilePage: React.FC = () => {
         <div className="flex items-center mb-5 mt-5">
           <div className="relative w-[120px] h-[120px] mr-5">
             <img
-              src={user?.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"}
+              src={avatar}
               alt="Profile"
               className="w-[120px] h-[120px] rounded-full object-cover"
             />
@@ -111,7 +111,7 @@ const StudentProfilePage: React.FC = () => {
               type="file"
               ref={fileInputRef}
               onChange={handleAvatarUpload}
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
               className="hidden"
             />
           </div>
@@ -231,3 +231,7 @@ const StudentProfilePage: React.FC = () => {
 };
 
 export default StudentProfilePage;
+
+function setSuccess(arg0: string) {
+  throw new Error("Function not implemented.");
+}
