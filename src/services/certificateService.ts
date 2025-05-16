@@ -11,7 +11,7 @@ export interface CertificatePayload {
   description: string;
 }
 
-const achivementService = {
+const certificateService = {
   getCertificates: () => axiosClient.get<Certificate[]>('/achievements'),
 
   addCertificate: (data: CertificatePayload) => axiosClient.post('/achievements', data),
@@ -33,4 +33,4 @@ const achivementService = {
         throw error;
     }
 },};
-export default achivementService;
+export default certificateService;
