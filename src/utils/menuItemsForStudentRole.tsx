@@ -9,7 +9,7 @@ const menuItems = [
       link: '#', 
       icon: <FaGraduationCap />,
       children: [
-        { label: 'In-class', link: './in-class', icon: <FaGraduationCap />,
+        { label: 'In-class', link: 'InClass', icon: <FaGraduationCap />,
           children: [
           { label: 'Semester 1', link: './in-class/semester1', icon: <FaGraduationCap /> },  
           { label: 'Semester 2', link: './in-class/semester2', icon: <FaGraduationCap /> },
