@@ -14,10 +14,13 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center px-4 py-2 rounded-[10px] transition-colors duration-300 text-white w-[95px] h-[40px] text-[16px] border border-[#21BAEA] bg-[#21BAEA] hover:bg-[#0a8dba] ${className}`}
+className={`flex items-center justify-center px-4 py-2 rounded-[10px] transition-colors duration-300 w-[95px] h-[40px] text-[16px] border border-[#21BAEA] bg-[#21BAEA] hover:bg-[#0a8dba] ${className}`}
     >
-      <span className="mr-2 text-[1.2rem] w-[10px]">+</span>
-      {text}
+      {text === '' ? (
+        <span className="text-[1.2rem]">+</span>
+      ) : (
+        text
+      )}
     </button>
   );
 };
