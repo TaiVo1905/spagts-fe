@@ -52,7 +52,7 @@ const userService = {
             const response = await axiosClient.post(`/users/${userId}`, formData
             );
             console.log('Upload response:', response.data);
-            return response.data.imageUrl;
+            return response.data;
         } catch (error) {
             console.error('Upload error:', error);
             throw error;

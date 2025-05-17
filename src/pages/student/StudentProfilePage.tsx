@@ -19,7 +19,7 @@ const StudentProfilePage: React.FC = () => {
   const [avatar, setAvatar] = useState(user?.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
@@ -74,7 +74,9 @@ const StudentProfilePage: React.FC = () => {
     try {
       const file = e.target.files[0];
       const response = await userService.uploadAvatar(user.id, file);
-      setAvatar(user.imageUrl);
+      setAvatar(response.data.imageUrl
+        
+      );
       toast.success('Avatar updated successfully');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to update avatar');
