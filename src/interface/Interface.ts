@@ -4,11 +4,19 @@ export interface User {
   email: string;
   imageUrl: string;
   roles: 'Admin' | 'Teacher' | 'Student';
+  created_at: string;
 }
 
 export interface Class {
   id: number;
-  title: string;
+  teacher: User;
   name: string;
+}
+
+export interface Certificate {
+  id: number;
   imageUrl: string;
+  module: string;
+  date: Date;
+  description: string;
 }

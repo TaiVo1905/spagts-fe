@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import UserTable from '../../components/UserTable.tsx';
 import Button from "../../components/Button.tsx";
-import UserModal from '../../components/UserModal';
+import UserModal from '../../components/UserModal.tsx';
 
 const UserManagementPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [reload, setReload] = useState(false);
+  
+  
 
   const handleAddClick = () => {
     setModalOpen(true);
@@ -34,6 +36,7 @@ const UserManagementPage: React.FC = () => {
       </div>
       <UserTable reload={reload} />
       <UserModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={handleModalSuccess} />
+      
     </div>
   );
 };

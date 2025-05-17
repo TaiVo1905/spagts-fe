@@ -2,15 +2,12 @@ import axios from 'axios';
 
 const axiosClient = axios.create({
   baseURL: 'http://localhost:8000/api/v1',
-  withCredentials: true,
   headers: {
-    // 'Content-Type': 'application/json',
     'Accept': 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
 });
 
-// Add request interceptor for authentication
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {

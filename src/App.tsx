@@ -1,5 +1,5 @@
 import './styles/App.css'
-import AppRoutes from "./routes/AppRoutes.tsx"
+import AppRoutes from "./routes/AppRoutes.tsx";
 
 
 const App = () => {
