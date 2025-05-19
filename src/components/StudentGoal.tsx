@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import selfstudyPlanService, { SelfstudyPlan } from '../services/selfstudyplanService';
+import selfStudyPlanService, { SelfStudyPlan } from '../services/selfStudyPlanService';
 import Button from '../components/Button';
 import axiosClient from '../services/axiosClient';
 import { useAuth } from '../store/AuthContext'; 
@@ -10,7 +10,7 @@ interface Module {
   name: string;
 }
 
-const emptyPlanData: Omit<SelfstudyPlan, 'id'> = {
+const emptyPlanData: SelfStudyPlan= {
   module_id: 0,   
   date: new Date().toISOString().slice(0, 10),
   lesson_learned: '',
@@ -23,20 +23,23 @@ const emptyPlanData: Omit<SelfstudyPlan, 'id'> = {
   reinforcing_techniques: '',
   note: '',
   student_id:0,
-  
-
+  semester: 0
 };
 
-const StudentGoal: React.FC = () => {
+interface Props {
+semester: number
+}
+
+const StudentGoal: React.FC<Props> = ({semester}) => {
   const { user } = useAuth();
   console.log('Current user:', user); 
-  const [plans, setPlans] = useState<SelfstudyPlan[]>([]);
+  const [plans, setPlans] = useState<SelfStudyPlan[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingCell, setEditingCell] = useState<{ row: number; field: keyof SelfstudyPlan } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ row: number; field: keyof SelfStudyPlan } | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [newPlan, setNewPlan] = useState<Omit<SelfstudyPlan, 'id'>>(emptyPlanData);
+  const [newPlan, setNewPlan] = useState<Omit<SelfStudyPlan, 'id'>>(emptyPlanData);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,13 +51,13 @@ const StudentGoal: React.FC = () => {
 
       try {
         setLoading(true);
-        const plansData = await selfstudyPlanService.getAll();
-        setPlans(plansData);
+        const response = await selfStudyPlanService.getSelfStudyPlans(user.id, semester);
+        setPlans(response.data);
 
-        const modulesResponse = await axiosClient.get('/modules');
+        const modulesResponse = await axiosClient.get(`users/${user.id}/modules`);
         setModules(modulesResponse.data.data || []);
 
-        setNewPlan((prev) => ({ ...prev, student_id: user.id }));
+        setNewPlan((prev) => ({ ...prev, student_id: user.id, semester: semester }));
 
         setError(null);
       } catch (err: any) {
@@ -65,12 +68,12 @@ const StudentGoal: React.FC = () => {
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, semester]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     rowIndex: number,
-    field: keyof SelfstudyPlan
+    field: keyof SelfStudyPlan
   ) => {
     const value = e.target.value;
     const updatedPlans = [...plans];
@@ -84,7 +87,7 @@ const StudentGoal: React.FC = () => {
     setPlans(updatedPlans);
   };
 
-  const handleBlur = async (rowIndex: number, field: keyof SelfstudyPlan) => {
+  const handleBlur = async (rowIndex: number, field: keyof SelfStudyPlan) => {
     const updatedPlan = plans[rowIndex];
     if (!updatedPlan.id) {
       alert('Không thể cập nhật: Kế hoạch thiếu ID.');
@@ -94,7 +97,7 @@ const StudentGoal: React.FC = () => {
     }
     try {
       const updatedField = { [field]: updatedPlan[field] };
-      await selfstudyPlanService.update(updatedPlan.id, updatedField);
+      await selfStudyPlanService.updateSelfStudyPlan(updatedPlan.id, updatedField);
     } catch (err: any) {
       alert('Cập nhật thất bại: ' + (err.message || err));
     }
@@ -111,7 +114,7 @@ const StudentGoal: React.FC = () => {
 
   const handleModalInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-    field: keyof Omit<SelfstudyPlan, 'id'>
+    field: keyof SelfStudyPlan
   ) => {
     const value = e.target.value;
     setNewPlan((prev) => ({
@@ -136,12 +139,12 @@ const StudentGoal: React.FC = () => {
 
   try {
     setLoading(true);
-    const planData = { ...newPlan, student_id: user.id };
+    const planData = { ...newPlan, student_id: user.id, semester: semester };
     console.log('Dữ liệu gửi đi:', planData);
-    const createdPlan = await selfstudyPlanService.create(planData);
-    setPlans((prev) => [...prev, createdPlan.data]); 
+    const response = await selfStudyPlanService.addSelfStudyPlan(user.id, planData);
+    setPlans((prev) => [...prev, response.data]); 
     setShowModal(false);
-    setNewPlan({ ...emptyPlanData, student_id: user.id });
+    setNewPlan({ ...emptyPlanData, student_id: user.id, semester: semester });
   } catch (err: any) {
     console.error('Lỗi khi tạo kế hoạch:', err.response?.data);
     alert('Thêm thất bại: ' + (err.response?.data?.message || err.message || err));
@@ -151,10 +154,10 @@ const StudentGoal: React.FC = () => {
 };
   const handleModalClose = () => {
     setShowModal(false);
-    setNewPlan({ ...emptyPlanData, student_id: user?.id || 0 });
+    setNewPlan({ ...emptyPlanData, student_id: user?.id || 0, semester: semester });
   };
 
-  const fields: (keyof SelfstudyPlan)[] = [
+  const fields: (keyof SelfStudyPlan)[] = [
     'date',
     'lesson_learned',
     'time_allocation',
@@ -169,10 +172,16 @@ const StudentGoal: React.FC = () => {
 
   if (loading) return <p className="text-center mt-10">Loading...</p>;
   if (error) return <p className="text-center mt-10 text-red-600">Error: {error}</p>;
-  if (plans.length === 0 && !showModal) return <p className="text-center mt-10">No plans found.</p>;
 
  return (
-    <div className="relative m-5 w-[70%]">
+plans.length === 0 && !showModal ?
+      (<div className='relative m-5 w-[calc(100vw-300px)] h-full'>
+        <p className="text-center mt-10">No plans found.</p>
+        <div className="fixed bottom-12 rounded right-8 z-100 text-white bg-(--primary-color)">
+          <Button text="+ Add" onClick={handleAdd} />
+        </div>
+      </div>):
+    (<div className="relative m-5 w-[calc(100vw-300px)] h-full">
       {/* Table */}
       <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
         <table className="w-full table-fixed border-collapse rounded-lg shadow-md">
@@ -368,11 +377,11 @@ const StudentGoal: React.FC = () => {
 </div>
 </div>
       )}
-      <div className="fixed bottom-4 right-4 z-50 mr-5 text-white">
+      <div className="fixed bottom-12 rounded right-8 z-100 text-white bg-(--primary-color)">
         <Button text="+ Add" onClick={handleAdd} />
       </div>
     </div>
-  );
+  ))
 };
 
 export default StudentGoal;

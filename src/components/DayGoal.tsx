@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Button from './Button';
+import '../styles/App.css';
 
 const DayGoal: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -20,21 +21,9 @@ const DayGoal: React.FC = () => {
   };
 
   return (
-    <div className="pl-8  ml-5 my-2 border border-[#ccc] rounded-lg shadow w-[70%]">
+    <div className="m-4 p-3 border border-[#ccc] rounded-lg shadow w-[calc(100vw-300px)]">
       <div 
-        className="flex gap-10 p-4 overflow-x-auto"
-        style={{
-          scrollbarWidth: 'none', 
-          msOverflowStyle: 'none', 
-        }}
-      >
-        <style>
-          {`
-            .overflow-x-auto::-webkit-scrollbar {
-              display: none;
-            }
-          `}
-        </style>
+        className="flex gap-10 overflow-auto tailwind-custom-scrollbar">
 
         {dayGoals.map((text, index) => (
           <Button

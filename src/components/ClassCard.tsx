@@ -7,7 +7,7 @@ interface TeacherProps {
   imageUrl: string;
 }
 
-const Teacher: React.FC<TeacherProps> = ({ className, teacherName, imageUrl }) => {
+const ClassCard: React.FC<TeacherProps> = ({ className, teacherName, imageUrl }) => {
   return (
     <div className="relative w-[249px] h-[186px] border border-gray-300 rounded-[15px] shadow-md overflow-hidden m-5 bg-(--light-color) transform transition duration-300 hover:scale-105 hover:shadow-lg">
       
@@ -38,4 +38,4 @@ const Teacher: React.FC<TeacherProps> = ({ className, teacherName, imageUrl }) =
   );
 };
 
-export default Teacher;
+export default ClassCard;

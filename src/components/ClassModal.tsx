@@ -4,13 +4,13 @@ import { Class } from '../interface/Interface';
 
 interface ClassModalProps {
   open: boolean;
-  editClass?: boolean;
+  isEditClass?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   initialStateEdit?: Class | null;
 }
 
-const ClassModal: React.FC<ClassModalProps> = ({ open, editClass = false, onClose, onSuccess, initialStateEdit }) => {
+const ClassModal: React.FC<ClassModalProps> = ({ open, isEditClass = false, onClose, onSuccess, initialStateEdit }) => {
   if (!open) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -31,7 +31,7 @@ const ClassModal: React.FC<ClassModalProps> = ({ open, editClass = false, onClos
     >
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative" onClick={e => e.stopPropagation()}>
         <div className="flex border-b mb-4">
-          <div className="text-lg font-semibold">{editClass ? 'Edit':'Add new'} class</div>
+          <div className="text-lg font-semibold">{isEditClass ? 'Edit':'Add new'} class</div>
         </div>
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
@@ -41,7 +41,7 @@ const ClassModal: React.FC<ClassModalProps> = ({ open, editClass = false, onClos
         </button>
         <div className="mt-2">
           <AddClassForm
-            isEdit={editClass} 
+            isEdit={isEditClass} 
             onSuccess={onSuccess}
             initialState={initialState}
           />
