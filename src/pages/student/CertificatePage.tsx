@@ -21,8 +21,8 @@ const CertificatePage: React.FC = () => {
         const fetchCertificates = async () => {
             try {
                 setLoading(true);
-                const response = await certificateService.getCertificates();
-                setCertificatesData(response.data.data);
+                const response = await certificateService.getAll();
+                setCertificatesData(response.data);
                 console.log(certificatesData)
                 setError(null);
             } catch (error) {
@@ -67,9 +67,9 @@ const CertificatePage: React.FC = () => {
             };
 
             try {
-                await certificateService.updateCertificate(currentCert.id, updatedData);
-                const response = await certificateService.getCertificates();
-                setCertificatesData(response.data.data);
+                await certificateService.update(currentCert.id, updatedData);
+                const response = await certificateService.getAll();
+                setCertificatesData(response.data);
                 setIsUpdateModalOpen(false);
                 setCurrentCert(null);
                 setImageFile(null);
@@ -93,9 +93,9 @@ const CertificatePage: React.FC = () => {
         };
 
         try {
-            await certificateService.addCertificate(newCertificate);
-            const response = await certificateService.getCertificates();
-            setCertificatesData(response.data.data);
+            await certificateService.add(newCertificate)
+            const response = await certificateService.getAll();
+            setCertificatesData(response.data);
             setIsAddModalOpen(false); 
             setNewModule(''); 
             setNewDate('');
@@ -111,8 +111,8 @@ const CertificatePage: React.FC = () => {
         
         if (confirmDelete) {
             try {
-                await certificateService.deleteCertificate(id);
-                const response = await certificateService.getCertificates();
+                await certificateService.delete(id);
+                const response = await certificateService.getAll();
                 setCertificatesData(response.data);
             } catch (error) {
                 console.error('Error deleting certificate:', error);

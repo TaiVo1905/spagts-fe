@@ -14,12 +14,12 @@ export interface SemesterGoal {
 }
 
 const semesterGoalService = {
-    getSemesterGoals: async (studentId: number, semester: number) => {
-        const response = await axiosClient.get(`users/${studentId}/goals?semester=${semester}`);
+    getAll: async (studentId: number, semester: number) => {
+        const response = await axiosClient.get(`semesterGoals?studentId=${studentId}&semester=${semester}`);
         return response.data;
     },
-    addSemesterGoal: async (studentId: number, data: SemesterGoal) => {
-        const response = await axiosClient.post(`users/${studentId}/goals`, {
+    add: async (studentId: number, data: SemesterGoal) => {
+        const response = await axiosClient.post(`users/${studentId}/semesterGoals`, {
             studentId,
             moduleId: data.moduleId,
             semester: data.semester,
@@ -31,12 +31,12 @@ const semesterGoalService = {
         });
         return response.data;
     },
-    deleteSemesterGoal: async (id: number) => {
-        const response = await axiosClient.delete(`goals/${id}`);
+    delete: async (id: number) => {
+        const response = await axiosClient.delete(`semesterGoals/${id}`);
         return response.data;
     },
-    updateSemesterGoal: async (id: number, data: SemesterGoal) => {
-        const response = await axiosClient.patch(`goals/${id}`, data);
+    update: async (id: number, data: SemesterGoal) => {
+        const response = await axiosClient.patch(`semesterGoals/${id}`, data);
         return response.data;
     },
 };

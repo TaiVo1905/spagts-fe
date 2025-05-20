@@ -12,7 +12,7 @@ export interface ClassResponse {
 }
 
 export const classService = {
-  getClasses: async (page: number = 1, perPage: number = 10): Promise<ClassResponse> => {
+  getAll: async (page: number = 1, perPage: number = 10): Promise<ClassResponse> => {
     try {
       const response = await axiosClient.get(`/classes`, {
         params: {
@@ -27,7 +27,7 @@ export const classService = {
     }
   },
 
-  createClass: async (data: { teacher_id: number; name: string }): Promise<Class> => {
+  add: async (data: { teacher_id: number; name: string }): Promise<Class> => {
     try {
       const response = await axiosClient.post('/classes', data);
       return response.data;
@@ -37,7 +37,7 @@ export const classService = {
     }
   },
 
-  updateClass: async (data: { class_id: number, teacher_id: number; name: string }) => {
+  update: async (data: { class_id: number, teacher_id: number; name: string }) => {
     try {
       const response = await axiosClient.put(`/classes/${data.class_id}`, data);
       return response.data;
@@ -47,7 +47,7 @@ export const classService = {
     }
   },
 
-  deleteClass: async (id: number): Promise<void> => {
+  delete: async (id: number): Promise<void> => {
     try {
       await axiosClient.delete(`/classes/${id}`);
     } catch (error) {

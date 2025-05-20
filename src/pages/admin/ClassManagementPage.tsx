@@ -24,7 +24,7 @@ const ClassManagementPage: React.FC = () => {
         const fetchClasses = async (pageNumber: number) => {
             try {
                 setLoading(true);
-                const response = await classService.getClasses(pageNumber);
+                const response = await classService.getAll(pageNumber);
                 setClasses(response.data);
                 setTotalPages(response.meta?.last_page || 1);
             } catch (err) {
@@ -79,7 +79,7 @@ const ClassManagementPage: React.FC = () => {
                         onDelete={async () => {
                           if (window.confirm('Are you sure you want to delete this class?')) {
                             try {
-                              await classService.deleteClass(cls.id);
+                              await classService.delete(cls.id);
                               setReload(r => !r);
                             } catch (err) {
                               toast.error('Failed to delete class');

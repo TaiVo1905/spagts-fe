@@ -47,7 +47,7 @@
 
 /* In your CSS file */
 .tailwind-custom-scrollbar::-webkit-scrollbar {
-  width: 2px;
+  width: 6px;
 }
 
 .tailwind-custom-scrollbar::-webkit-scrollbar-track {

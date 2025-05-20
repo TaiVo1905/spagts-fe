@@ -1,76 +1,65 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import WeeklyGoalService, { WeeklyGoal } from '../services/weeklyGoalService';
 import { useAuth } from '../store/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingToFetchData from './LoadingToFetchData';
 
+type TaskCheckListProps = {
+  selectedStartDate: string | null;
+  selectedEndDate: string | null;
+  semester: number
+};
 
-interface Props {
-semester: number
-}
-
-const TaskCheckList: React.FC<Props> = ({semester}) => {
+const TaskCheckList: React.FC<TaskCheckListProps> = ({
+  semester,
+  selectedStartDate,
+  selectedEndDate
+}) => {
   const [tasks, setTasks] = useState<WeeklyGoal[]>([]);
   const [newTask, setNewTask] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const userId = user?.id || 0;
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        if (!user) return;
-        setIsLoading(true);
-        const response = await WeeklyGoalService.getWeeklyGoals(user.id, semester);
+        const response = await WeeklyGoalService.getAll(userId, semester);
         setTasks(response.data);
       } catch (error) {
         console.error('Failed to fetch weekly goals:', error);
-        toast.error('Failed to load tasks');
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchTasks();
   }, [user, semester]);
 
-  const toggleCompletion = async (index: number) => {
+  const filteredTasks = tasks.filter(
+    (t) => t.start_date === selectedStartDate && t.end_date === selectedEndDate
+  );
+
+  const toggleCompletion = async (taskId: number) => {
     const updatedTasks = [...tasks];
+    const index = updatedTasks.findIndex((t) => t.id === taskId);
     const task = updatedTasks[index];
     const newStatus = !task.is_completed;
 
-    // Optimistic update
     task.is_completed = newStatus;
     setTasks(updatedTasks);
-    if (!user) return
+
     try {
-      const updatedData = {
-        start_date: task.start_date,
-        end_date: task.end_date,
-        goal_content: task.goal_content,
-        is_completed: newStatus,
-        student_id: user.id,
-        semester: semester
-      };
-      await WeeklyGoalService.updateWeeklyGoal(task.id!, updatedData);
-      toast.success('Task updated successfully');
+      await WeeklyGoalService.update(task.id!, { is_completed: newStatus });
     } catch (error) {
       console.error('Failed to update task:', error);
-      // Revert on error
       task.is_completed = !newStatus;
       setTasks([...updatedTasks]);
-      toast.error('Failed to update task');
     }
   };
 
   const startEdit = (index: number) => {
     setEditIndex(index);
-    setEditContent(tasks[index].goal_content);
-  };
-
-  const cancelEdit = () => {
-    setEditIndex(null);
-    setEditContent('');
+    setEditContent(filteredTasks[index].goal_content || '');
   };
 
   const saveEdit = async (index: number) => {
@@ -78,31 +67,25 @@ const TaskCheckList: React.FC<Props> = ({semester}) => {
       toast.error('Content cannot be empty');
       return;
     }
-
     const updatedTasks = [...tasks];
-    const task = updatedTasks[index];
+    const taskIndex = tasks.findIndex(
+      (t) =>
+        t.start_date === selectedStartDate &&
+        t.end_date === selectedEndDate &&
+        t.id === filteredTasks[index].id
+    );
+    const task = updatedTasks[taskIndex];
     const oldContent = task.goal_content;
 
-    // Optimistic update
     task.goal_content = editContent.trim();
     setTasks(updatedTasks);
     setEditIndex(null);
-    if(!user) return
 
     try {
-      const updatedData = {
-        start_date: task.start_date,
-        end_date: task.end_date,
-        goal_content: task.goal_content,
-        is_completed: task.is_completed,
-        student_id: user.id,
-        semester: semester
-      };
-      await WeeklyGoalService.updateWeeklyGoal(task.id!, updatedData);
+      await WeeklyGoalService.update(task.id!, { goal_content: task.goal_content });
       toast.success('Task updated successfully');
     } catch (error) {
       console.error('Failed to update task content:', error);
-      // Revert on error
       task.goal_content = oldContent;
       setTasks([...updatedTasks]);
       toast.error('Failed to update task');
@@ -110,24 +93,25 @@ const TaskCheckList: React.FC<Props> = ({semester}) => {
   };
 
   const addTask = async () => {
-    if (!newTask.trim()) {
+    if (!newTask.trim()) return;
+
+    if (!selectedStartDate || !selectedEndDate) {
       toast.error('Please enter a task');
       return;
     }
-    if(!user) return
-    const today = new Date().toISOString().slice(0, 10);
+
     const newGoal: WeeklyGoal = {
-      start_date: today,
-      end_date: today,
+      start_date: selectedStartDate,
+      end_date: selectedEndDate,
       goal_content: newTask.trim(),
       is_completed: false,
-      student_id: user.id,
+      student_id: userId,
       semester: semester
     };
 
     try {
       setIsLoading(true);
-      const response = await WeeklyGoalService.addWeeklyGoal(user.id, newGoal);
+      const response = await WeeklyGoalService.add(userId, newGoal);
       setTasks([...tasks, response.data]);
       setNewTask('');
       toast.success('Task added successfully');
@@ -144,63 +128,35 @@ const TaskCheckList: React.FC<Props> = ({semester}) => {
   }
 
   return (
-    <>
-      <div className="m-4 p-3 w-[calc(100vw-300px)] border border-[#ccc] rounded-lg shadow">
-        <div
-          className="flex gap-10 overflow-x-auto"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          <style>
-            {`
-              .overflow-x-auto::-webkit-scrollbar {
-                display: none;
-              }
-            `}
-          </style>
-
-          {tasks.map((task, index) => (
+    <div className='w-full bg-white rounded-xl border border-gray-100 shadow-md overflow-hidden p-4 mb-6'>
+      <div className="w-full overflow-x-auto scrollbar-hide">
+        <div className="flex gap-3">
+          {filteredTasks.map((task, index) => (
             <div
-              key={task.id || index}
-              className="flex-shrink-0 w-[480px] bg-blue-50 px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm"
+              key={task.id}
+              className="flex items-center gap-3 px-3 bg-white rounded-lg shadow-sm border border-gray-200 min-w-80 max-w-128 text-break"
             >
               <input
                 type="checkbox"
                 checked={task.is_completed}
-                onChange={() => toggleCompletion(index)}
-                className="accent-blue-500 w-5 h-5"
-                disabled={isLoading}
+                onChange={() => toggleCompletion(task.id!)}
+                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               {editIndex === index ? (
-                <div className="flex-grow flex gap-2">
-                  <input
-                    type="text"
-                    className="p-1 border border-gray-300 rounded-lg flex-grow"
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEdit(index);
-                      if (e.key === 'Escape') cancelEdit();
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => saveEdit(index)}
-                    className="px-2 py-1 bg-(--primary-color) text-white rounded hover:bg-(--primary-color)/70"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="px-2 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  className="flex-grow p-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit(index);
+                    if (e.key === 'Escape') setEditIndex(null);
+                  }}
+                  autoFocus
+                />
               ) : (
                 <span
-                  className={`text-base flex-grow cursor-pointer ${
-                    task.is_completed ? 'line-through text-gray-400' : 'text-gray-700'
-                  }`}
+                  className={`flex-grow text-gray-800 ${task.is_completed ? 'line-through text-gray-400' : ''}`}
                   onDoubleClick={() => startEdit(index)}
                   title="Double click to edit"
                 >
@@ -210,27 +166,20 @@ const TaskCheckList: React.FC<Props> = ({semester}) => {
             </div>
           ))}
 
-          <div className="flex-shrink-0 w-[480px] bg-blue-50 px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+          <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="w-5 h-5 border border-gray-300 rounded flex-shrink-0"></div>
             <input
               type="text"
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
-              className="p-2 border border-gray-300 rounded-lg w-full"
-              placeholder="New goal content"
+              className="flex-grow p-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Add new task"
               onKeyDown={(e) => e.key === 'Enter' && addTask()}
-              disabled={isLoading}
             />
-            <button
-              onClick={addTask}
-              className="px-3 py-2 bg-(--primary-color) text-white rounded hover:bg-(--primary-color)/70"
-              disabled={isLoading || !newTask.trim()}
-            >
-              Add
-            </button>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -33,7 +33,7 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
         const { index, field } = editingCell;
         if (tempValue !== (goals[index][field] || '')) {
             try {
-                await semesterGoalService.updateSemesterGoal(goals[index].id, { [field]: tempValue });
+                await semesterGoalService.update(goals[index].id, { [field]: tempValue });
                 const updatedGoals = goals.map((goal, i) => i === index ? { ...goal, [field]: tempValue } : goal);
                 setGoals(updatedGoals);
                 toast.success('Goal updated successfully!');
@@ -60,7 +60,7 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
 
         if (window.confirm('Are you sure you want to delete this goal?')) {
             try {
-                await semesterGoalService.deleteSemesterGoal(goal.id);
+                await semesterGoalService.delete(goal.id);
                 setGoals(goals.filter((_, i) => i !== index));
                 toast.success('Goal deleted successfully!');
             } catch (error) {
@@ -159,7 +159,7 @@ const SemesterGoalPage: React.FC = () => {
         const initializeData = async () => {
             // Load modules
             try {
-                const { data } = await moduleService.getModules();
+                const { data } = await moduleService.getAll();
                 setModules(data || []);
             } catch (error) {
                 console.error('Fetch modules error:', error);
@@ -179,7 +179,7 @@ const SemesterGoalPage: React.FC = () => {
         if (!user || loadedSemesters.has(semester)) return;
 
         try {
-            const { data } = await semesterGoalService.getSemesterGoals(user.id, semester);
+            const { data } = await semesterGoalService.getAll(user.id, semester);
             setGoalsBySemester(prev => ({ 
                 ...prev, 
                 [`S${semester}`]: data || [] 
@@ -215,7 +215,7 @@ const SemesterGoalPage: React.FC = () => {
         }
 
         try {
-            const { data: addedGoal } = await semesterGoalService.addSemesterGoal(user.id, {
+            const { data: addedGoal } = await semesterGoalService.add(user.id, {
                 ...data,
                 semester: selectedSemester
             });

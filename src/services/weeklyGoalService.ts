@@ -2,17 +2,17 @@ import axiosClient from './axiosClient';
 
 export interface WeeklyGoal {
   id?: number;
-  start_date: string;
-  end_date: string;
-  goal_content: string;
-  is_completed: boolean;
-  student_id: number;
-  semester: number;
+  start_date?: string;
+  end_date?: string;
+  goal_content?: string;
+  is_completed?: boolean;
+  student_id?: number;
+  semester?: number;
 }
 
 const WeeklyGoalService = {
-  getWeeklyGoals: async (student_id: number, semester: number) => {
-    const response = await axiosClient.get(`users/${student_id}/weekly-goals?semester=${semester}`);
+  getAll: async (student_id: number, semester: number) => {
+    const response = await axiosClient.get(`/weekly-goals?studentId=${student_id}&semester=${semester}`);
     return response.data; 
   },
 
@@ -21,17 +21,17 @@ const WeeklyGoalService = {
     return response.data;
   },
 
-  addWeeklyGoal: async (student_id: number, data: WeeklyGoal) => {
-    const response = await axiosClient.post(`users/${student_id}/weekly-goals`, data);
+  add: async (student_id: number, data: WeeklyGoal) => {
+    const response = await axiosClient.post(`/weekly-goals?studentId=${student_id}`, data);
     return response.data;
   },
 
- updateWeeklyGoal: async (id: number, data: WeeklyGoal): Promise<WeeklyGoal> => {
+ update: async (id: number, data: WeeklyGoal): Promise<WeeklyGoal> => {
   const response = await axiosClient.patch(`/weekly-goals/${id}`, data);
   return response.data;
 },
 
-  deleteWeeklyGoal: async (id: number): Promise<void> => {
+  delete: async (id: number): Promise<void> => {
     await axiosClient.delete(`/weekly-goals/${id}`);
   },
 };

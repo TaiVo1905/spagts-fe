@@ -52,13 +52,13 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
     setError(null);
     try {
       if (isEdit) {
-        await classService.updateClass({
+        await classService.update({
           class_id: form.id,
           teacher_id: form.teacher.id,
           name: form.name
         });
       } else {
-        await classService.createClass({
+        await classService.add({
           teacher_id: form.teacher.id,
           name: form.name
         });

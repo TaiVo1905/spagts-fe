@@ -19,8 +19,8 @@ export interface SelfStudyPlan {
 }
 
 const selfStudyPlanService = {
-  getSelfStudyPlans: async (student_id: number, semester: number) => {
-    const response = await axiosClient.get(`users/${student_id}/self-study-plans?semester=${semester}`);
+  getAll: async (student_id: number, semester: number) => {
+    const response = await axiosClient.get(`self-study-plans?studentId=${student_id}&semester=${semester}`);
     return response.data;
   },
 
@@ -29,17 +29,17 @@ const selfStudyPlanService = {
     return response.data;
   },
 
-async addSelfStudyPlan(student_id: number, data: SelfStudyPlan,) {
-    const response = await axiosClient.post(`users/${student_id}/self-study-plans`, data);
+async add(student_id: number, data: SelfStudyPlan,) {
+    const response = await axiosClient.post(`/self-study-plans?studentId=${student_id}`, data);
     return response.data;
   },
 
-  updateSelfStudyPlan: async (id: number, data: SelfStudyPlan) => {
+  update: async (id: number, data: SelfStudyPlan) => {
     const response = await axiosClient.patch(`/self-study-plans/${id}`, data);
     return response.data;
   },
 
-  deleteSelfStudyPlan: async (id: number): Promise<void> => {
+  delete: async (id: number): Promise<void> => {
     await axiosClient.delete(`/self-study-plans/${id}`);
   },
 };
