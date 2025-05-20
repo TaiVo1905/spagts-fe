@@ -1,5 +1,4 @@
 import axiosClient from './axiosClient';
-import { Certificate } from '../interface/Interface';
 
 export interface CertificatePayload {
   id?: number;
@@ -10,9 +9,11 @@ export interface CertificatePayload {
 }
 
 const certificateService = {
-  getCertificates: () => axiosClient.get<Certificate[]>('/achievements'),
+  getAll: async() => {
+    return (await axiosClient.get('/achievements')).data
+  },
 
-  addCertificate: (data: CertificatePayload) => {
+  add: async(data: CertificatePayload) => {
     const formData = new FormData();
     if (data.imageUrl instanceof File) {
       formData.append('imageUrl', data.imageUrl);
@@ -20,14 +21,14 @@ const certificateService = {
     formData.append('module', data.module);
     formData.append('date', data.date.toString());
     formData.append('description', data.description);
-    return axiosClient.post('/achievements', formData, {
+    return (await axiosClient.post('/achievements', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    });
+    })).data;
   },
 
-  deleteCertificate: async (cerId: number) => {
+  delete: async (cerId: number) => {
     try {
       const response = await axiosClient.delete(`/achievements/${cerId}`);
       return response.data;
@@ -37,7 +38,7 @@ const certificateService = {
     }
   },
 
-  updateCertificate: async (cerId: number, data: CertificatePayload) => {
+  update: async (cerId: number, data: CertificatePayload) => {
     try {
       const formData = new FormData();
       if (data.imageUrl instanceof File) {

@@ -7,38 +7,34 @@ import LoadingToFetchData from "../../components/LoadingToFetchData.tsx";
 import { Class } from "../../interface/Interface.ts";
 import Button from "../../components/Button.tsx";
 import ClassModal from "../../components/ClassModal.tsx";
-import UserModal from "../../components/UserModal.tsx";
 
 const ClassManagementPage: React.FC = () => {
-      const [modalOpen, setModalOpen] = useState(false);
-        const [reload, setReload] = useState(false);
-
+    const [modalOpen, setModalOpen] = useState(false);
+    const [reload, setReload] = useState(false);
     const [page, setPage] = useState(1);
     const [classes, setClasses] = useState<Class[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [editingClass, setEditingClass] = useState<Class | null>(null);
-    const [editClass, setEditClass] = useState(false);
+    const [isEditClass, setIsEditClass] = useState(false);
     
 
-    const fetchClasses = async (pageNumber: number) => {
-        try {
-            setLoading(true);
-            setError(null);
-            const response = await classService.getClasses(pageNumber);
-            setClasses(response.data);
-            setTotalPages(response.meta?.last_page || 1);
-        } catch (err) {
-            setError('Failed to fetch classes');
-            toast.error('Failed to load classes');
-            console.error('Error fetching classes:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    
     useEffect(() => {
+        const fetchClasses = async (pageNumber: number) => {
+            try {
+                setLoading(true);
+                const response = await classService.getAll(pageNumber);
+                setClasses(response.data);
+                setTotalPages(response.meta?.last_page || 1);
+            } catch (err) {
+                toast.error('Failed to load classes');
+                console.error('Error fetching classes:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
         fetchClasses(page);
     }, [page, reload]);
 
@@ -46,22 +42,11 @@ const ClassManagementPage: React.FC = () => {
         return (<LoadingToFetchData/>);
     }
 
-    if (error) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-red-500">{error}</div>
-            </div>
-        );
-    }
     const handleAddClick = () => {
         setEditingClass(null);
-        setEditClass(false);
+        setIsEditClass(false);
         setModalOpen(true);
     };
-    const handleModalSuccess = () => {
-    setModalOpen(false);
-    setReload(r => !r); // toggle reload
-  };
 
     return (
         <div className="p-4 w-full">
@@ -88,13 +73,13 @@ const ClassManagementPage: React.FC = () => {
                         imageUrl={cls.teacher.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"}
                         onEdit={() => {
                             setEditingClass(cls);
-                            setEditClass(true);
+                            setIsEditClass(true);
                             setModalOpen(true);
                         }}
                         onDelete={async () => {
                           if (window.confirm('Are you sure you want to delete this class?')) {
                             try {
-                              await classService.deleteClass(cls.id);
+                              await classService.delete(cls.id);
                               setReload(r => !r);
                             } catch (err) {
                               toast.error('Failed to delete class');
@@ -111,10 +96,10 @@ const ClassManagementPage: React.FC = () => {
             />
       <ClassModal
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditingClass(null); setEditClass(false); }}
-        onSuccess={() => { setModalOpen(false); setEditingClass(null); setEditClass(false); setReload(r => !r); }}
+        onClose={() => { setModalOpen(false); setEditingClass(null); setIsEditClass(false); }}
+        onSuccess={() => { setModalOpen(false); setEditingClass(null); setIsEditClass(false); setReload(r => !r); }}
         initialStateEdit={editingClass}
-        editClass={editClass}
+        isEditClass={isEditClass}
       />
 
         </div>

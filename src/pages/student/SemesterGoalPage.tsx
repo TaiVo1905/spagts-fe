@@ -1,67 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import "../../styles/App.css";
-import goalService, { Goal, AddGoalPayload, Module } from '../../services/goalService';
+import semesterGoalService, { SemesterGoal } from '../../services/semesterGoalService';
 import { useForm } from 'react-hook-form';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../../store/AuthContext';
+import moduleService, { Module } from '../../services/moduleService';
 
-const initialGoalsBySemester: Record<string, Goal[]> = {
-    S1: [],
-    S2: [],
-    S3: [],
-    S4: [],
-    S5: [],
-    S6: [],
+const initialGoalsBySemester: Record<string, SemesterGoal[]> = {
+    S1: [], S2: [], S3: [], S4: [], S5: [], S6: [],
 };
 
-const headers = [
-    'Course',
-    'What I expect from the course',
-    'What I expect from the teacher & instructor',
-    'What I expect from myself',
-    "Student's evaluation",
-    "Teacher's evaluation",
-    'Actions',
-];
+const headers = ['Course', 'What I expect from the course', 'What I expect from the teacher & instructor', 
+                'What I expect from myself', "Student's evaluation", "Teacher's evaluation", 'Actions'];
 
-const columnWidths = [
-    'min-w-[200px]',
-    'min-w-[350px]',
-    'min-w-[380px]',
-    'min-w-[350px]',
-    'min-w-[350px]',
-    'min-w-[350px]',
-    'min-w-[60px]',
-];
+const columnWidths = ['min-w-[200px]', 'min-w-[350px]', 'min-w-[380px]', 'min-w-[350px]', 
+                     'min-w-[350px]', 'min-w-[350px]', 'min-w-[60px]'];
 
-const StudentSemesterGoal: React.FC<{ semester: string; goals: Goal[]; setGoals: (goals: Goal[]) => void }> = ({ semester, goals, setGoals }) => {
-    const [editingCell, setEditingCell] = useState<{ index: number; field: keyof Goal } | null>(null);
+const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; setGoals: (goals: SemesterGoal[]) => void }> = 
+({ semester, goals, setGoals }) => {
+    const { user } = useAuth();
+    const [editingCell, setEditingCell] = useState<{ index: number; field: keyof SemesterGoal } | null>(null);
+    const [tempValue, setTempValue] = useState<string>('');
 
-    const handleInputChange = async (index: number, field: keyof Goal, value: string) => {
-        const updatedGoals = goals.map((goal, i) =>
-            i === index ? { ...goal, [field]: value } : goal
-        );
-        setGoals(updatedGoals);
+    const handleDoubleClick = (index: number, field: keyof SemesterGoal, value: string) => {
+        setEditingCell({ index, field });
+        setTempValue(value);
+    };
 
-        if (goals[index].id) {
+    const saveChanges = async () => {
+        if (!editingCell || !user) return;
+
+        const { index, field } = editingCell;
+        if (tempValue !== (goals[index][field] || '')) {
             try {
-                await goalService.updateGoal(goals[index].id, { [field]: value });
+                await semesterGoalService.update(goals[index].id, { [field]: tempValue });
+                const updatedGoals = goals.map((goal, i) => i === index ? { ...goal, [field]: tempValue } : goal);
+                setGoals(updatedGoals);
                 toast.success('Goal updated successfully!');
             } catch (error) {
                 console.error('Update goal error:', error);
                 toast.error('Failed to update goal. Please try again.');
             }
         }
+        setEditingCell(null);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveChanges();
+        } else if (e.key === 'Escape') {
+            setEditingCell(null);
+        }
     };
 
     const handleDelete = async (index: number) => {
         const goal = goals[index];
-        if (!goal.id) return;
+        if (!goal.id || !user) return;
 
         if (window.confirm('Are you sure you want to delete this goal?')) {
             try {
-                await goalService.deleteGoal(goal.id);
+                await semesterGoalService.delete(goal.id);
                 setGoals(goals.filter((_, i) => i !== index));
                 toast.success('Goal deleted successfully!');
             } catch (error) {
@@ -71,29 +70,26 @@ const StudentSemesterGoal: React.FC<{ semester: string; goals: Goal[]; setGoals:
         }
     };
 
-    const renderCell = (index: number, field: keyof Goal, value: string) => {
+    const renderCell = (index: number, field: keyof SemesterGoal, value: string) => {
         const isEditing = editingCell?.index === index && editingCell?.field === field;
 
         if (isEditing) {
-            if (field === 'course') {
-                return (
-                    <input
-                        type="text"
-                        value={value}
-                        onChange={(e) => handleInputChange(index, field, e.target.value)}
-                        onBlur={() => setEditingCell(null)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') setEditingCell(null); }}
-                        className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                        autoFocus
-                    />
-                );
-            }
-            return (
+            return field === 'course' ? (
+                <input
+                    type="text"
+                    value={tempValue}
+                    onChange={(e) => setTempValue(e.target.value)}
+                    onBlur={saveChanges}
+                    onKeyDown={handleKeyDown}
+                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    autoFocus
+                />
+            ) : (
                 <textarea
-                    value={value}
-                    onChange={(e) => handleInputChange(index, field, e.target.value)}
-                    onBlur={() => setEditingCell(null)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) setEditingCell(null); }}
+                    value={tempValue}
+                    onChange={(e) => setTempValue(e.target.value)}
+                    onBlur={saveChanges}
+                    onKeyDown={handleKeyDown}
                     className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     rows={3}
                     autoFocus
@@ -103,7 +99,7 @@ const StudentSemesterGoal: React.FC<{ semester: string; goals: Goal[]; setGoals:
 
         return (
             <div
-                onClick={() => setEditingCell({ index, field })}
+                onDoubleClick={() => handleDoubleClick(index, field, value)}
                 className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center text-[#1B1B1F]"
             >
                 {value || '-'}
@@ -117,10 +113,7 @@ const StudentSemesterGoal: React.FC<{ semester: string; goals: Goal[]; setGoals:
                 <div className="min-w-fit">
                     <div className="flex text-sm font-semibold text-[#21BAEA] bg-[#f9fcff] border-b border-gray-200 sticky top-0 z-10">
                         {headers.map((label, idx) => (
-                            <div
-                                key={idx}
-                                className={`${columnWidths[idx]} py-3 px-4 border-r last:border-none flex justify-center items-center whitespace-nowrap`}
-                            >
+                            <div key={idx} className={`${columnWidths[idx]} py-3 px-4 border-r last:border-none flex justify-center items-center whitespace-nowrap`}>
                                 {label}
                             </div>
                         ))}
@@ -131,33 +124,16 @@ const StudentSemesterGoal: React.FC<{ semester: string; goals: Goal[]; setGoals:
                         </div>
                     ) : (
                         goals.map((goal, index) => (
-                            <div
-                                key={goal.id || index}
-                                className={`flex text-sm text-[#1B1B1F] border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-[#F7FBFC]' : 'bg-white'}`}
-                            >
-                                <div className={`${columnWidths[0]} py-3 px-4 break-words whitespace-normal`}>
-                                    {renderCell(index, 'course', goal.course)}
-                                </div>
-                                <div className={`${columnWidths[1]} py-3 px-4 break-words whitespace-normal`}>
-                                    {renderCell(index, 'courseExpectation', goal.courseExpectation)}
-                                </div>
-                                <div className={`${columnWidths[2]} py-3 px-4 break-words whitespace-normal`}>
-                                    {renderCell(index, 'teacherExpectation', goal.teacherExpectation)}
-                                </div>
-                                <div className={`${columnWidths[3]} py-3 px-4 break-words whitespace-normal`}>
-                                    {renderCell(index, 'selfExpectation', goal.selfExpectation)}
-                                </div>
-                                <div className={`${columnWidths[4]} py-3 px-4 break-words whitespace-normal`}>
-                                    {renderCell(index, 'studentEvaluation', goal.studentEvaluation || '')}
-                                </div>
-                                <div className={`${columnWidths[5]} py-3 px-4 break-words whitespace-normal`}>
-                                    {renderCell(index, 'teacherEvaluation', goal.teacherEvaluation || '')}
-                                </div>
+                            <div key={index} className={`flex text-sm text-[#1B1B1F] border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-[#F7FBFC]' : 'bg-white'}`}>
+                                {['course', 'courseExpectation', 'teacherExpectation', 'selfExpectation', 'studentEvaluation', 'teacherEvaluation'].map((field, i) => (
+                                    <div key={i} className={`${columnWidths[i]} py-3 px-4 break-words whitespace-normal`}>
+                                        {renderCell(index, field as keyof SemesterGoal, goal[field as keyof SemesterGoal] || '')}
+                                    </div>
+                                ))}
                                 <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
                                     <button
                                         onClick={() => handleDelete(index)}
-                                        className="inline-block mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                        aria-label={`Delete goal for ${goal.course || 'row ' + (index + 1)}`}
+                                        className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                     >
                                         Delete
                                     </button>
@@ -171,106 +147,95 @@ const StudentSemesterGoal: React.FC<{ semester: string; goals: Goal[]; setGoals:
     );
 };
 
-const StudentSemesterGoalPage: React.FC = () => {
-    const [selectedSemester, setSelectedSemester] = useState('S1');
-    const [goalsBySemester, setGoalsBySemester] = useState<Record<string, Goal[]>>(initialGoalsBySemester);
+const SemesterGoalPage: React.FC = () => {
+    const [selectedSemester, setSelectedSemester] = useState(1);
+    const [goalsBySemester, setGoalsBySemester] = useState(initialGoalsBySemester);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
-    const { user, loading } = useAuth();
+    const [loadedSemesters, setLoadedSemesters] = useState<Set<number>>(new Set());
+    const { user } = useAuth();
 
     useEffect(() => {
-        const fetchModules = async () => {
+        const initializeData = async () => {
+            // Load modules
             try {
-                const response = await goalService.getModules();
-                setModules(response || []);
+                const { data } = await moduleService.getAll();
+                setModules(data || []);
             } catch (error) {
                 console.error('Fetch modules error:', error);
-                toast.error('Failed to load modules. Please try again.');
-                setModules([]);
+                toast.error('Failed to load modules.');
+            }
+            
+            // Auto load first semester data
+            if (user) {
+                fetchGoalsForSemester(1); // Load S1 ngay khi vào trang
             }
         };
 
-        fetchModules();
-    }, []);
+        initializeData();
+    }, [user]); // Thêm user vào dependency array
 
-    useEffect(() => {
-        const fetchGoals = async () => {
-            try {
-                const response = await goalService.getGoals();
-                const goals = response.data;
+    const fetchGoalsForSemester = async (semester: number) => {
+        if (!user || loadedSemesters.has(semester)) return;
 
-                const groupedGoals: Record<string, Goal[]> = {
-                    S1: [],
-                    S2: [],
-                    S3: [],
-                    S4: [],
-                    S5: [],
-                    S6: [],
-                };
+        try {
+            const { data } = await semesterGoalService.getAll(user.id, semester);
+            setGoalsBySemester(prev => ({ 
+                ...prev, 
+                [`S${semester}`]: data || [] 
+            }));
+            setLoadedSemesters(prev => new Set(prev).add(semester));
+        } catch (error) {
+            console.error(`Fetch goals for semester ${semester} error:`, error);
+            toast.error(`Failed to load goals for semester ${semester}.`);
+        }
+    };
 
-                goals.forEach((goal) => {
-                    if (groupedGoals[goal.semester]) {
-                        groupedGoals[goal.semester].push(goal);
-                    }
-                });
+    const handleSemesterChange = (semester: number) => {
+        setSelectedSemester(semester);
+        fetchGoalsForSemester(semester);
+    };
 
-                setGoalsBySemester(groupedGoals);
-            } catch (error) {
-                console.error('Fetch goals error:', error);
-                toast.error('Failed to load goals. Please try again.');
-            }
-        };
-
-        fetchGoals();
-    }, []);
-
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<AddGoalPayload>({
+    const { register, handleSubmit, formState: { errors }, reset } = useForm<SemesterGoal>({
         defaultValues: {
-            student_id: user?.id,
+            studentId: user?.id,
             semester: selectedSemester,
-            modules_id: 0,
+            moduleId: 0,
             course: '',
             courseExpectation: '',
             teacherExpectation: '',
             selfExpectation: '',
-            studentEvaluation: '',
-            teacherEvaluation: '',
         },
     });
 
-    const onSubmit = async (data: AddGoalPayload) => {
-        try {
-            data.semester = selectedSemester;
-            if (!data.modules_id || data.modules_id === 0) {
-                toast.error('Please select a module.');
-                return;
-            }
-            const { studentEvaluation, teacherEvaluation, ...payload } = data;
-            const response = await goalService.addGoal(payload);
-            const addedGoal: Goal = {
-                ...response.data,
-                studentEvaluation: '',
-                teacherEvaluation: '',
-            };
+    const onSubmit = async (data: SemesterGoal) => {
+        if (!data.moduleId || !user) {
+            toast.error('Please select a module.');
+            return;
+        }
 
-            setGoalsBySemester((prev) => ({
+        try {
+            const { data: addedGoal } = await semesterGoalService.add(user.id, {
+                ...data,
+                semester: selectedSemester
+            });
+            
+            setGoalsBySemester(prev => ({
                 ...prev,
-                [selectedSemester]: [...prev[selectedSemester], addedGoal],
+                [`S${selectedSemester}`]: [...prev[`S${selectedSemester}`], addedGoal],
             }));
+            
             toast.success('Goal added successfully!');
             setIsModalOpen(false);
             reset();
         } catch (error) {
             console.error('Add goal error:', error);
-            toast.error('Failed to add goal. Please try again.');
+            toast.error('Failed to add goal.');
         }
     };
 
-    const updateGoals = (newGoals: Goal[]) => {
-        setGoalsBySemester((prev) => ({
-            ...prev,
-            [selectedSemester]: newGoals,
-        }));
+    const updateGoals = (newGoals: SemesterGoal[]) => {
+        setGoalsBySemester(prev => ({ ...prev, [`S${selectedSemester}`]: newGoals }));
     };
 
     return (
@@ -278,23 +243,23 @@ const StudentSemesterGoalPage: React.FC = () => {
             <div className="relative bg-white rounded-2xl shadow-md p-6 min-h-[700px]">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex space-x-3">
-                        {['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].map((sem) => (
+                        {[1, 2, 3, 4, 5, 6].map((sem) => (
                             <button
                                 key={sem}
-                                onClick={() => setSelectedSemester(sem)}
-                                className={`px-6 py-2 text-sm font-semibold rounded-xl transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] ${selectedSemester === sem
-                                    ? 'bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white shadow-md'
-                                    : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
-                                    }`}
+                                onClick={() => handleSemesterChange(sem)}
+                                className={`px-6 py-2 text-sm cursor-pointer font-semibold rounded-xl transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] ${
+                                    selectedSemester === sem
+                                        ? 'bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white shadow-md'
+                                        : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+                                }`}
                             >
-                                {sem}
+                                S{sem}
                             </button>
                         ))}
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA]"
-                        aria-label="Add new goal"
+                        className="flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA]"
                     >
                         <span className="text-xl leading-none">＋</span>
                         <span className="text-sm">Add new goal</span>
@@ -302,8 +267,13 @@ const StudentSemesterGoalPage: React.FC = () => {
                 </div>
                 <StudentSemesterGoal
                     semester={selectedSemester}
-                    goals={goalsBySemester[selectedSemester]}
-                    setGoals={updateGoals}
+                    goals={goalsBySemester[`S${selectedSemester}`]}
+                    setGoals={(newGoals) => {
+                        setGoalsBySemester(prev => ({ 
+                            ...prev, 
+                            [`S${selectedSemester}`]: newGoals 
+                        }));
+                    }}
                 />
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -324,7 +294,7 @@ const StudentSemesterGoalPage: React.FC = () => {
                                         Module <span className="text-red-500">*</span>
                                     </label>
                                     <select
-                                        {...register('modules_id', { required: 'Module is required', valueAsNumber: true })}
+                                        {...register('moduleId', { required: 'Module is required', valueAsNumber: true })}
                                         className="w-full h-10 px-3 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                                     >
                                         <option value="0">Select a module</option>
@@ -334,24 +304,9 @@ const StudentSemesterGoalPage: React.FC = () => {
                                             </option>
                                         ))}
                                     </select>
-                                    {errors.modules_id && (
+                                    {errors.moduleId && (
                                         <p className="mt-1 text-xs text-red-500">
-                                            {errors.modules_id.message}
-                                        </p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Course <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        {...register('course', { required: 'Course is required' })}
-                                        className="w-full h-10 px-3 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                                        placeholder="Enter course name"
-                                    />
-                                    {errors.course && (
-                                        <p className="mt-1 text-xs text-red-500">
-                                            {errors.course.message}
+                                            {errors.moduleId.message}
                                         </p>
                                     )}
                                 </div>
@@ -418,13 +373,13 @@ const StudentSemesterGoalPage: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsModalOpen(false)}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition"
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition"
                                     >
                                         Save
                                     </button>
@@ -434,9 +389,8 @@ const StudentSemesterGoalPage: React.FC = () => {
                     </div>
                 )}
             </div>
-            <ToastContainer />
         </div>
     );
 };
 
-export default StudentSemesterGoalPage;
+export default SemesterGoalPage;

@@ -1,5 +1,4 @@
 import { Calendar } from '../../components/calendar/Calendar';
-import { Toaster } from 'react-hot-toast';
 import { TimetableProvider } from '../../store/TimetableContext';
 
 const TimetablePage = () => {
@@ -9,7 +8,6 @@ const TimetablePage = () => {
       <TimetableProvider>
         <Calendar />
       </TimetableProvider>
-      <Toaster position="top-right" />
     </div>
   );
 };

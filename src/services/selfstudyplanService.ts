@@ -1,7 +1,7 @@
 import axiosClient from './axiosClient';
 
-export interface SelfstudyPlan {
-  id: number;
+export interface SelfStudyPlan {
+  id?: number;
   module_id: number;
   date: string;
   lesson_learned: string;
@@ -14,31 +14,28 @@ export interface SelfstudyPlan {
   reinforcing_techniques: string;
   note: string;
   student_id:number;
+  semester:number;
   
 }
 
-const selfstudyPlanService = {
-  getAll: async (): Promise<SelfstudyPlan[]> => {
-    const response = await axiosClient.get('/self-study-plans');
-    return response.data.data;
+const selfStudyPlanService = {
+  getAll: async (student_id: number, semester: number) => {
+    const response = await axiosClient.get(`self-study-plans?studentId=${student_id}&semester=${semester}`);
+    return response.data;
   },
 
-  getById: async (id: number): Promise<SelfstudyPlan> => {
+  getById: async (id: number) => {
     const response = await axiosClient.get(`/self-study-plans/${id}`);
     return response.data;
   },
 
-async create(plan: Omit<SelfstudyPlan, 'id'>): Promise<SelfstudyPlan> {
-    const response = await axiosClient.post('/self-study-plans', plan);
-    const createdPlan = response.data;
-    if (!createdPlan.id) {
-      console.error('Kế hoạch mới:', createdPlan);
-    }
-    return createdPlan;
+async add(student_id: number, data: SelfStudyPlan,) {
+    const response = await axiosClient.post(`/self-study-plans?studentId=${student_id}`, data);
+    return response.data;
   },
 
-  update: async (id: number, data: Partial<SelfstudyPlan>): Promise<SelfstudyPlan> => {
-    const response = await axiosClient.put(`/self-study-plans/${id}`, data);
+  update: async (id: number, data: SelfStudyPlan) => {
+    const response = await axiosClient.patch(`/self-study-plans/${id}`, data);
     return response.data;
   },
 
@@ -47,4 +44,4 @@ async create(plan: Omit<SelfstudyPlan, 'id'>): Promise<SelfstudyPlan> {
   },
 };
 
-export default selfstudyPlanService;
+export default selfStudyPlanService;

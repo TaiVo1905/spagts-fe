@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import userService from '../../services/userService';
 import { useAuth } from '../../store/AuthContext';
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import LoadingToFetchData from "../../components/LoadingToFetchData";
 import { FaEye, FaEyeSlash, FaCamera } from 'react-icons/fa';
 
@@ -91,9 +91,6 @@ const StudentProfilePage: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-right"
-      />
       <div className="w-full bg-white ml-[18px] mt-[21px] mr-[35px]">
         <h2 className="leading-[60px] text-[25px] font-bold border-b border-[#C5C1C1]">Personal Information</h2>
         <div className="flex items-center mb-5 mt-5">
