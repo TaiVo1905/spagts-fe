@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../store/AuthContext';
 import moduleService, { Module } from '../../services/moduleService';
+import { useRole } from '../../utils/useRole';
 
 const initialGoalsBySemester: Record<string, SemesterGoal[]> = {
     S1: [], S2: [], S3: [], S4: [], S5: [], S6: [],
@@ -73,7 +74,7 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
     const renderCell = (index: number, field: keyof SemesterGoal, value: string) => {
         const isEditing = editingCell?.index === index && editingCell?.field === field;
 
-        if (isEditing) {
+        if (isEditing && useRole().isStudent) {
             return field === 'course' ? (
                 <input
                     type="text"
@@ -119,8 +120,8 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
                         ))}
                     </div>
                     {goals.length === 0 ? (
-                        <div className="py-10 text-center text-gray-500">
-                            No goals yet. Click <span className="text-[#21BAEA]">"Add new goal"</span> to start!
+                        <div className="py-10 text-start pl-10 text-gray-500">
+                            No goals yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "Add new goal"}</span> {useRole().isStudent && "to start!"}
                         </div>
                     ) : (
                         goals.map((goal, index) => (
@@ -130,14 +131,14 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
                                         {renderCell(index, field as keyof SemesterGoal, goal[field as keyof SemesterGoal] || '')}
                                     </div>
                                 ))}
-                                <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
+                                {useRole().isStudent && <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
                                     <button
                                         onClick={() => handleDelete(index)}
                                         className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                     >
                                         Delete
                                     </button>
-                                </div>
+                                </div>}
                             </div>
                         ))
                     )}
@@ -157,7 +158,7 @@ const SemesterGoalPage: React.FC = () => {
 
     useEffect(() => {
         const initializeData = async () => {
-            // Load modules
+
             try {
                 const { data } = await moduleService.getAll();
                 setModules(data || []);
@@ -166,14 +167,14 @@ const SemesterGoalPage: React.FC = () => {
                 toast.error('Failed to load modules.');
             }
             
-            // Auto load first semester data
+            
             if (user) {
-                fetchGoalsForSemester(1); // Load S1 ngay khi vào trang
+                fetchGoalsForSemester(1);
             }
         };
 
         initializeData();
-    }, [user]); // Thêm user vào dependency array
+    }, [user]);
 
     const fetchGoalsForSemester = async (semester: number) => {
         if (!user || loadedSemesters.has(semester)) return;
@@ -257,13 +258,13 @@ const SemesterGoalPage: React.FC = () => {
                             </button>
                         ))}
                     </div>
-                    <button
+                    {useRole().isStudent && <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA]"
                     >
                         <span className="text-xl leading-none">＋</span>
                         <span className="text-sm">Add new goal</span>
-                    </button>
+                    </button>}
                 </div>
                 <StudentSemesterGoal
                     semester={selectedSemester}
