@@ -1,4 +1,5 @@
 import { RouteObject } from "react-router-dom";
+import TeacherPage from "../pages/teacher/TeacherPage";
 import StudentProfilePage from "../pages/student/StudentProfilePage";
 import TimetablePage from "../pages/student/TimetablePage";
 import CertificatePage from "../pages/student/CertificatePage";
@@ -7,6 +8,7 @@ import LearningJournalPage from "../pages/student/LearningJournalPage";
 
 export const teacherRoutes: RouteObject[] =  [
       { path: "profile", element: <StudentProfilePage /> },
+      { path: "dashboard", element: <TeacherPage /> },
       { path: "student/:id/profile", element: <StudentProfilePage /> },
       { path: "student/:id/achievement", element: <CertificatePage /> },
       { path: "student/:id/semester-goal", element: <StudentSemesterGoalPage /> },
