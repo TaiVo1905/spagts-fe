@@ -19,7 +19,7 @@ const StudentLayout: React.FC = () => {
             />
             <div className='flex'>
                 <Sidebar
-                    menuItems={menuItems}
+                    menuItems={Array.isArray(menuItems) ? menuItems : menuItems()}
                 />
                 <Outlet/>
             </div>

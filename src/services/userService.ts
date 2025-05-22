@@ -29,6 +29,12 @@ const userService = {
       per_page: perPage
     }}),
 
+  getStudent: async(studentId: number) => {
+    const response = await axiosClient.get(`/users/${studentId}`);
+    return response.data;
+    
+  },
+
   addUser: (data: AddUserPayload) => axiosClient.post('/users', data),
 
   importUsers: (file: File) => {

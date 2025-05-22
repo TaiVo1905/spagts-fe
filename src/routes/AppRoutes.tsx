@@ -8,7 +8,7 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import AdminLayout from "../layouts/AdminLayout";
 import StudentLayout from "../layouts/StudentLayout";
 import TeacherLayout from "../layouts/TeacherLayout";
-
+import { teacherRoutes } from "./TeacherRoutes";
 
 const router = createBrowserRouter([
   {
@@ -37,6 +37,7 @@ const router = createBrowserRouter([
         path: "teacher/*",
         element: <ProtectedRoute role="Teacher">
           <TeacherLayout />
+<!--           <StudentLayout /> -->
         </ProtectedRoute>,
         children: teacherRoutes
       }
