@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import selfStudyPlanService, { SelfStudyPlan } from '../services/selfStudyplanService';
+import selfStudyPlanService, { SelfStudyPlan } from '../services/selfstudyplanService';
 import axiosClient from '../services/axiosClient';
 import { useAuth } from '../store/AuthContext';
 import { toast } from 'react-hot-toast';

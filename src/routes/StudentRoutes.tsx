@@ -5,6 +5,7 @@ import CertificatePage from "../pages/student/CertificatePage";
 import StudentSemesterGoalPage from "../pages/student/SemesterGoalPage";
 import LearningJournalPage from "../pages/student/LearningJournalPage";
 
+
 export const studentRoutes: RouteObject[] =  [
       { path: "profile", element: <StudentProfilePage /> },
       { path: "achievement", element: <CertificatePage /> },
@@ -17,7 +18,6 @@ export const studentRoutes: RouteObject[] =  [
       { path: "learning-journal/semester5", element: <LearningJournalPage /> },
       { path: "learning-journal/semester6", element: <LearningJournalPage /> },
       { path: "timetable", element: <TimetablePage /> },
-    ]
 
-;
+    ];
 export default studentRoutes;

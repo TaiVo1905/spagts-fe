@@ -174,7 +174,7 @@ const CertificatePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {currentCertificates.length === 0 ? (
-                        <div className="col-span-1 sm:col-span-2 md:col-span-3 py-10 text-start pl-10 text-gray-500">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-3 py-10 text-center text-gray-500">
                             No certificates yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "Add new certificate"}</span> {useRole().isStudent && "to start!"}
                         </div>
                     ) : (
