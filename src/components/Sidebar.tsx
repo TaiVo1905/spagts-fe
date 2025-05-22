@@ -4,7 +4,6 @@ import '../styles/App.css'
 import 'tailwind-scrollbar';
 import { useRole } from '../utils/useRole';
 
-
 interface MenuItem {
   label: string;
   link: string;

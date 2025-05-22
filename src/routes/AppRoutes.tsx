@@ -1,12 +1,14 @@
 import RootLayout from "../layouts/RootLayout";
 import { adminRoutes } from "./AdminRoutes";
 import { studentRoutes } from "./StudentRoutes";
-// import { teacherRoutes } from "./TeacherRoutes";
+import { teacherRoutes } from "./TeacherRoutes";
 import  authRoutes  from "./AuthRoutes";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import AdminLayout from "../layouts/AdminLayout";
 import StudentLayout from "../layouts/StudentLayout";
+import TeacherLayout from "../layouts/TeacherLayout";
+
 
 const router = createBrowserRouter([
   {
@@ -31,13 +33,13 @@ const router = createBrowserRouter([
         </ProtectedRoute>,
         children: studentRoutes
       },
-      // {
-      //   path: "teacher/*",
-      //   element: <ProtectedRoute role="Teacher">
-      //     <TeacherLayout />
-      //   </ProtectedRoute>,
-      //   children: teacherRoutes
-      // }
+      {
+        path: "teacher/*",
+        element: <ProtectedRoute role="Teacher">
+          <TeacherLayout />
+        </ProtectedRoute>,
+        children: teacherRoutes
+      }
 
     ],
   },
