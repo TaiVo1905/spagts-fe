@@ -8,6 +8,7 @@ import { useTimetable } from '../../store/TimetableContext';
 import { EventDropArg, EventInput } from '@fullcalendar/core';
 import {EventModal} from './EventModal';
 import toast from 'react-hot-toast';
+import { useRole } from '../../utils/useRole';
 
 export const Calendar = () => {
   const {
@@ -101,14 +102,14 @@ export const Calendar = () => {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
-          editable={true}
-          selectable={true}
-          selectMirror={true}
+          editable={useRole().isStudent}
+          selectable={useRole().isStudent}
+          selectMirror={useRole().isStudent}
           dayMaxEvents={true}
           weekends={true}
           events={formatEvents(events)}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
+          dateClick={useRole().isStudent ? handleDateClick : null}
+          eventClick={useRole().isStudent ? handleEventClick: null}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           height="auto"
