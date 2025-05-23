@@ -3,6 +3,7 @@ import inClassPlanService, { InClassPlan } from '../services/inClassPlanService'
 import { useAuth } from '../store/AuthContext';
 import moduleService from '../services/moduleService';
 import { toast } from 'react-hot-toast';
+import { useRole } from '../utils/useRole';
 
 interface Module {
   id: number;
@@ -28,20 +29,20 @@ const emptyPlanData: InClassPlan = {
 };
 
 const headers = [
-  'Date', 
-  'Lesson Learned', 
-  'Self Assessment', 
-  'Difficulties', 
-  'Plan to Improve', 
+  'Date',
+  'Lesson Learned',
+  'Self Assessment',
+  'Difficulties',
+  'Plan to Improve',
   'Problem Solved'
 ];
 
 const columnWidths = [
-  'min-w-[150px]', 
-  'min-w-[200px]', 
-  'min-w-[150px]', 
-  'min-w-[200px]', 
-  'min-w-[200px]', 
+  'min-w-[150px]',
+  'min-w-[200px]',
+  'min-w-[150px]',
+  'min-w-[200px]',
+  'min-w-[200px]',
   'min-w-[150px]'
 ];
 
@@ -107,13 +108,13 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   const saveChanges = async (rowIndex: number) => {
     if (!editingCell || !user) return;
 
-    const updatedPlan = { 
-      ...plans[rowIndex], 
-      [editingCell.field]: editingCell.field === 'self_assessment' 
-        ? Number(tempValue) 
+    const updatedPlan = {
+      ...plans[rowIndex],
+      [editingCell.field]: editingCell.field === 'self_assessment'
+        ? Number(tempValue)
         : editingCell.field === 'problem_solved'
-        ? tempValue === 'true'
-        : tempValue
+          ? tempValue === 'true'
+          : tempValue
     };
 
     try {
@@ -194,7 +195,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
       setLoading(true);
       const planData = { ...newPlan, student_id: user.id, semester: semester };
       const response = await inClassPlanService.add(user.id, planData);
-      setPlans((prev) => [...prev, response.data]); 
+      setPlans((prev) => [...prev, response.data]);
       setShowModal(false);
       setNewPlan({ ...emptyPlanData, student_id: user.id, semester: semester });
       toast.success('Plan added successfully!');
@@ -213,13 +214,13 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
 
   const renderCell = (rowIndex: number, field: keyof InClassPlan, value: string | number | boolean) => {
     const isEditing = editingCell?.row === rowIndex && editingCell?.field === field;
-    const displayValue = field === 'self_assessment' 
-      ? `${value}/10` 
-      : field === 'problem_solved' 
-      ? value ? 'Yes' : 'No'
-      : value;
+    const displayValue = field === 'self_assessment'
+      ? `${value}/10`
+      : field === 'problem_solved'
+        ? value ? 'Yes' : 'No'
+        : value;
 
-    if (isEditing) {
+    if (useRole().isStudent && isEditing) {
       if (field === 'problem_solved') {
         return (
           <select
@@ -268,13 +269,13 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     <>
       <div className='relative'>
         <h3 className="text-[28px] font-semibold text-[#21BAEA] py-3 pl-2">In-class plan:</h3>
-        <button
+        {useRole().isStudent && <button
           onClick={handleAdd}
           className="absolute bottom-3 right-4 flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] z-40"
         >
           <span className="text-xl leading-none">＋</span>
           <span className="text-sm">Add new plan</span>
-        </button>
+        </button>}
       </div>
       <div className="w-full bg-white rounded-xl border border-gray-100 shadow-md overflow-hidden">
         <div className="overflow-x-auto max-w-full max-h-[580px] overflow-y-auto scrollbar-hide">
@@ -285,25 +286,25 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
                   {label}
                 </div>
               ))}
-              <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
+              {useRole().isStudent && <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
                 Actions
-              </div>
+              </div>}
             </div>
-            
+
             {filteredPlans.length === 0 ? (
-              <div className="py-10 text-center text-gray-500">
-                No plans yet. Click <span className="text-[#21BAEA]">"Add new plan"</span> to start!
+              <div className="py-10 text-start pl-10 text-gray-500">
+                No plans yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "'Add new plan'"}</span> {useRole().isStudent && "to start!"}
               </div>
             ) : (
               filteredPlans.map((plan, rowIndex) => (
                 <div key={rowIndex} className={`flex text-sm text-[#1B1B1F] border-b border-gray-100 hover:bg-gray-50 transition-colors ${rowIndex % 2 === 0 ? 'bg-[#F7FBFC]' : 'bg-white'}`}>
                   {headers.map((_, idx) => {
                     const field = [
-                      'date', 
-                      'lesson_learned', 
-                      'self_assessment', 
-                      'difficulties', 
-                      'plan_to_improve', 
+                      'date',
+                      'lesson_learned',
+                      'self_assessment',
+                      'difficulties',
+                      'plan_to_improve',
                       'problem_solved'
                     ][idx] as keyof InClassPlan;
                     return (
@@ -312,14 +313,14 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
                       </div>
                     );
                   })}
-                  <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
+                  {useRole().isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
                     <button
                       onClick={() => handleDelete(rowIndex)}
                       className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     >
                       Delete
                     </button>
-                  </div>
+                  </div>}
                 </div>
               ))
             )}
@@ -329,7 +330,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black opacity-50" onClick={handleModalClose} />
-            
+
             <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full mx-4 p-6">
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">Add New In-Class Plan</h2>
               <div className="h-0.5 bg-gray-100 mb-6" />
