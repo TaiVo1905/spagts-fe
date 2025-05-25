@@ -2,7 +2,6 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import TeacherCart from '../components/TeacherCart';
 import Avatar from '../components/Avatar';
 import menuItems from '../utils/menuItemsForTeacherRole';
 
@@ -24,7 +23,6 @@ const TeacherLayout: React.FC = () => {
                 <Sidebar menuItems={menuItems} />
 
                 <div className="flex flex-col flex-grow ml-3">
-                    <TeacherCart />
                     <Outlet />
                 </div>
             </div>

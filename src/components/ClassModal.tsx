@@ -1,4 +1,5 @@
-import React from 'react';
+// ClassModal.tsx
+import React, { useEffect, useState } from 'react';
 import AddClassForm from './Form/AddClassForm';
 import { Class } from '../interface/Interface';
 
@@ -11,6 +12,16 @@ interface ClassModalProps {
 }
 
 const ClassModal: React.FC<ClassModalProps> = ({ open, isEditClass = false, onClose, onSuccess, initialStateEdit }) => {
+  const [initialState, setInitialState] = useState<Class | null>(null);
+
+  useEffect(() => {
+    if (initialStateEdit) {
+      setInitialState(initialStateEdit);
+    } else {
+      setInitialState({ id: 0, teacher_id: 0, name: '', teacher: { id: 0, name: '', email: '', roles: '' } });
+    }
+  }, [initialStateEdit]);
+
   if (!open) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -19,19 +30,16 @@ const ClassModal: React.FC<ClassModalProps> = ({ open, isEditClass = false, onCl
     }
   };
 
-  
-  const initialState = initialStateEdit
-    ? { id: initialStateEdit.id, teacher_id: initialStateEdit.teacher.id, name: initialStateEdit.name }
-    : { teacher_id: 0, name: '' };
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-(--text-color)/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={handleOverlayClick}
     >
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative" onClick={e => e.stopPropagation()}>
         <div className="flex border-b mb-4">
-          <div className="text-lg font-semibold">{isEditClass ? 'Edit':'Add new'} class</div>
+          <div className="text-lg font-semibold">
+            {isEditClass ? 'Edit Class' : 'Create New Class'}
+          </div>
         </div>
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
@@ -40,15 +48,20 @@ const ClassModal: React.FC<ClassModalProps> = ({ open, isEditClass = false, onCl
           ×
         </button>
         <div className="mt-2">
-          <AddClassForm
-            isEdit={isEditClass} 
-            onSuccess={onSuccess}
-            initialState={initialState}
-          />
+          {initialState && (
+            <AddClassForm
+              isEdit={isEditClass} 
+              onSuccess={() => {
+                onClose();
+                if (onSuccess) onSuccess();
+              }}
+              initialState={initialState}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default ClassModal; 
+export default ClassModal;

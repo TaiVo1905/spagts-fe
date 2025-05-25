@@ -1,7 +1,6 @@
 import RootLayout from "../layouts/RootLayout";
 import { adminRoutes } from "./AdminRoutes";
 import { studentRoutes } from "./StudentRoutes";
-import { teacherRoutes } from "./TeacherRoutes";
 import  authRoutes  from "./AuthRoutes";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -36,11 +35,17 @@ const router = createBrowserRouter([
       {
         path: "teacher/*",
         element: <ProtectedRoute role="Teacher">
-          <TeacherLayout />
-<!--           <StudentLayout /> -->
+          <StudentLayout />
         </ProtectedRoute>,
         children: teacherRoutes
-      }
+      },
+      // {
+      //   path: "teacher/*",
+      //   element: <ProtectedRoute role="Teacher">
+      //     <TeacherLayout />
+      //   </ProtectedRoute>,
+      //   children: teacherRoutes
+      // }
 
     ],
   },

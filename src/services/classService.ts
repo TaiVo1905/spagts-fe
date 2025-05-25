@@ -12,7 +12,7 @@ export interface ClassResponse {
 }
 
 export const classService = {
-  getAll: async (page: number = 1, perPage: number = 10): Promise<ClassResponse> => {
+  getClasses: async (page: number = 1, perPage: number = 10): Promise<ClassResponse> => {
     try {
       const response = await axiosClient.get(`/classes`, {
         params: {
@@ -27,32 +27,16 @@ export const classService = {
     }
   },
 
-  add: async (data: { teacher_id: number; name: string }): Promise<Class> => {
-    try {
-      const response = await axiosClient.post('/classes', data);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating class:', error);
-      throw error;
-    }
-  },
-
-  update: async (data: { class_id: number, teacher_id: number; name: string }) => {
-    try {
-      const response = await axiosClient.put(`/classes/${data.class_id}`, data);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating class:', error);
-      throw error;
-    }
-  },
-
   delete: async (id: number): Promise<void> => {
     try {
+      
+      await axiosClient.delete(`/classes/${id}/users`);
+      await axiosClient.delete(`/classes/${id}/modules`);
+      
       await axiosClient.delete(`/classes/${id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting class:', error);
-      throw error;
+      throw new Error(error.response?.data?.message || 'Error deleting class');
     }
-  }
+  },
 };

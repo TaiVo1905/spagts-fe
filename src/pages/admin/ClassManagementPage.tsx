@@ -18,8 +18,6 @@ const ClassManagementPage: React.FC = () => {
     const [editingClass, setEditingClass] = useState<Class | null>(null);
     const [isEditClass, setIsEditClass] = useState(false);
     
-
-    
     useEffect(() => {
         const fetchClasses = async (pageNumber: number) => {
             try {

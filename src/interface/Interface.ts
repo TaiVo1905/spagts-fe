@@ -20,3 +20,12 @@ export interface Certificate {
   date: Date;
   description: string;
 }
+
+// interface/Interface.ts
+export interface Class {
+  id: number;
+  name: string;
+  description?: string;
+  teacher: User;
+  students: User[];
+}

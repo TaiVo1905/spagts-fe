@@ -1,5 +1,5 @@
 import { RouteObject } from "react-router-dom";
-import TeacherPage from "../pages/teacher/TeacherPage";
+import TeacherPage from "../pages/teacher/DashboardPage";
 import StudentProfilePage from "../pages/student/StudentProfilePage";
 import TimetablePage from "../pages/student/TimetablePage";
 import CertificatePage from "../pages/student/CertificatePage";

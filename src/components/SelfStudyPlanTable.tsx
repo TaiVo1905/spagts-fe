@@ -3,6 +3,8 @@ import selfStudyPlanService, { SelfStudyPlan } from '../services/selfstudyplanSe
 import axiosClient from '../services/axiosClient';
 import { useAuth } from '../store/AuthContext';
 import { toast } from 'react-hot-toast';
+import { useRole } from '../utils/useRole';
+import { useParams } from 'react-router-dom';
 
 interface Module {
   id: number;
@@ -59,6 +61,7 @@ const columnWidths = [
 
 const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStartDate, selectedEndDate }) => {
   const { user } = useAuth();
+  const { id: studentId } = useParams<{ id: string }>();
   const [plans, setPlans] = useState<SelfStudyPlan[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -68,6 +71,7 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
   const [newPlan, setNewPlan] = useState<SelfStudyPlan>(emptyPlanData);
   const [filteredPlans, setFilteredPlans] = useState<SelfStudyPlan[]>([]);
   const [tempValue, setTempValue] = useState<string>('');
+  const userId = Number(studentId) || user?.id || null;
 
   useEffect(() => {
     if (!selectedStartDate || !selectedEndDate) {
@@ -93,13 +97,13 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
 
       try {
         setLoading(true);
-        const response = await selfStudyPlanService.getAll(user.id, semester);
+        const response = await selfStudyPlanService.getAll(userId, semester);
         setPlans(response.data);
 
         const modulesResponse = await axiosClient.get('/modules');
         setModules(modulesResponse.data.data || []);
 
-        setNewPlan((prev) => ({ ...prev, student_id: user.id, semester: semester}));
+        setNewPlan((prev) => ({ ...prev, student_id: userId, semester: semester}));
         setError(null);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Error fetching data');
@@ -200,11 +204,11 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
 
     try {
       setLoading(true);
-      const planData = { ...newPlan, student_id: user.id, semester: semester };
-      const response = await selfStudyPlanService.add(user.id, planData);
+      const planData = { ...newPlan, student_id: userId, semester: semester };
+      const response = await selfStudyPlanService.add(userId, planData);
       setPlans((prev) => [...prev, response.data]); 
       setShowModal(false);
-      setNewPlan({ ...emptyPlanData, student_id: user.id, semester: semester });
+      setNewPlan({ ...emptyPlanData, student_id: userId, semester: semester });
       toast.success('Plan added successfully!');
     } catch (err: any) {
       console.error('Add plan error:', err);
@@ -227,7 +231,7 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
       ? `${value}/10` 
       : value;
 
-    if (isEditing) {
+    if (useRole().isStudent && isEditing) {
       return (
         <input
           type={field === 'date' ? 'date' : field === 'time_allocation' || field === 'concentration' ? 'number' : 'text'}
@@ -260,13 +264,13 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
     <>
       <div className='relative'>
         <h3 className="text-[28px] font-semibold text-[#21BAEA] py-3 pl-2">Self-study plan:</h3>
-        <button
+        {useRole().isStudent && <button
           onClick={handleAdd}
           className="absolute bottom-4 right-4 flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] z-40"
         >
           <span className="text-xl leading-none">＋</span>
           <span className="text-sm">Add new plan</span>
-        </button>
+        </button>}
       </div>
       <div className="w-full bg-white rounded-xl border border-gray-100 shadow-md overflow-hidden">
         <div className="overflow-x-auto max-w-full max-h-[580px] overflow-y-auto scrollbar-hide">
@@ -277,15 +281,14 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
                   {label}
                 </div>
               ))}
-              <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
+              {useRole().isStudent && <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
                 Actions
-              </div>
+              </div>}
             </div>
             
             {filteredPlans.length === 0 ? (
-              <div className="py-10 text-center text-gray-500">
-                No plans yet. Click <span className="text-[#21BAEA]">"Add new plan"</span> to start!
-              </div>
+              <div className="py-10 text-start pl-10 text-gray-500">
+                No plans yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "'Add new plan'"}</span> {useRole().isStudent && "to start!"}             </div>
             ) : (
               filteredPlans.map((plan, rowIndex) => (
                 <div key={rowIndex} className={`flex text-sm text-[#1B1B1F] border-b border-gray-100 hover:bg-gray-50 transition-colors ${rowIndex % 2 === 0 ? 'bg-[#F7FBFC]' : 'bg-white'}`}>
@@ -308,14 +311,14 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
                       </div>
                     );
                   })}
-                  <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
+                  {useRole().isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
                     <button
                       onClick={() => handleDelete(rowIndex)}
                       className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     >
                       Delete
                     </button>
-                  </div>
+                  </div>}
                 </div>
               ))
             )}

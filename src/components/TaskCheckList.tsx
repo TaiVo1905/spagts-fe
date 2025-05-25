@@ -3,6 +3,8 @@ import WeeklyGoalService, { WeeklyGoal } from '../services/weeklyGoalService';
 import { useAuth } from '../store/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingToFetchData from './LoadingToFetchData';
+import { useRole } from '../utils/useRole';
+import { useParams } from 'react-router-dom';
 
 type TaskCheckListProps = {
   selectedStartDate: string | null;
@@ -21,7 +23,9 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
   const { user } = useAuth();
-  const userId = user?.id || 0;
+  const { id: studentId } = useParams<{ id: string }>();
+
+  const userId = Number(studentId) || user?.id || 0;
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -139,10 +143,11 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
               <input
                 type="checkbox"
                 checked={task.is_completed}
-                onChange={() => toggleCompletion(task.id!)}
+                onChange={() => useRole().isStudent && toggleCompletion(task.id!)}
                 className="w-5 h-5 accent-blue-600 rounded border-gray-400"
+                readOnly={!useRole().isStudent}
               />
-              {editIndex === index ? (
+              { useRole().isStudent && editIndex === index ? (
                 <input
                   type="text"
                   value={editContent}
@@ -168,8 +173,8 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
           ))}
 
           {/* New task input box */}
-          <div className="flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border-2 border-dashed border-gray-300 min-w-80 max-w-md shadow-sm hover:border-blue-400 transition-all">
-            <div className="w-5 h-5 border border-gray-300 rounded bg-white"></div>
+          {useRole().isStudent && <div className="flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border-2 border-dashed border-gray-300 min-w-80 max-w-md shadow-sm hover:border-blue-400 transition-all">
+            {/* <div className="w-5 h-5 border border-gray-300 rounded bg-white"></div> */}
             <input
               type="text"
               value={newTask}
@@ -178,7 +183,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
               onKeyDown={(e) => e.key === 'Enter' && addTask()}
               className="flex-grow px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 text-sm"
             />
-          </div>
+          </div>}
         </div>
       </div>
     </div>
