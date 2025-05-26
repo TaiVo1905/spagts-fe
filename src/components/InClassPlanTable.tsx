@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import inClassPlanService, { InClassPlan } from '../services/inClassPlanService';
 import { useAuth } from '../store/AuthContext';
 import moduleService from '../services/moduleService';
 import { toast } from 'react-hot-toast';
 import { useRole } from '../utils/useRole';
+import CommentPopover from './CommentPopover';
+import { ref, onValue, off } from 'firebase/database';
+import { database } from '../services/firebaseService';
+import ReactDOM from 'react-dom';
 
 interface Module {
   id: number;
@@ -57,6 +61,16 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   const [newPlan, setNewPlan] = useState<InClassPlan>(emptyPlanData);
   const [filteredPlans, setFilteredPlans] = useState<InClassPlan[]>([]);
   const [tempValue, setTempValue] = useState<string>('');
+  const [commentPopover, setCommentPopover] = useState<{
+    isOpen: boolean;
+    position: { top: number; left: number };
+    commentableId: number;
+    fieldName: string;
+    row: number;
+    iconId: string;
+  } | null>(null);
+  const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!selectedStartDate || !selectedEndDate) {
@@ -99,6 +113,36 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     };
     fetchData();
   }, [user, semester]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribeCallbacks: (() => void)[] = [];
+    filteredPlans.forEach((plan, rowIndex) => {
+      if (!plan.id) return;
+      ['date', 'lesson_learned', 'self_assessment', 'difficulties', 'plan_to_improve', 'problem_solved'].forEach((field) => {
+        const path = `comments/App\\Models\\InClassPlan/${plan.id}/${field}/${rowIndex}`;
+        const key = `${plan.id}-${field}-${rowIndex}`;
+        const commentsRef = ref(database, path);
+        const unsubscribe = onValue(commentsRef, (snapshot) => {
+          const commentsData = snapshot.val();
+          if (commentsData) {
+            const count = Object.keys(commentsData).length;
+            setCommentsCount(prev => ({
+              ...prev,
+              [key]: count
+            }));
+          } else {
+            setCommentsCount(prev => ({
+              ...prev,
+              [key]: 0
+            }));
+          }
+        });
+        unsubscribeCallbacks.push(() => off(commentsRef));
+      });
+    });
+    return () => unsubscribeCallbacks.forEach(unsub => unsub());
+  }, [filteredPlans, user]);
 
   const handleDoubleClick = (rowIndex: number, field: keyof InClassPlan, value: string) => {
     setEditingCell({ row: rowIndex, field });
@@ -214,6 +258,9 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
 
   const renderCell = (rowIndex: number, field: keyof InClassPlan, value: string | number | boolean) => {
     const isEditing = editingCell?.row === rowIndex && editingCell?.field === field;
+    const plan = filteredPlans[rowIndex];
+    if (!plan.id) return null;
+    const commentCount = commentsCount[`${plan.id}-${field}-${rowIndex}`] || 0;
     const displayValue = field === 'self_assessment' 
       ? `${value}/10` 
       : field === 'problem_solved' 
@@ -236,7 +283,6 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
           </select>
         );
       }
-
       return (
         <input
           type={field === 'date' ? 'date' : field === 'self_assessment' ? 'number' : 'text'}
@@ -251,16 +297,82 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
         />
       );
     }
-
     return (
-      <div
-        onDoubleClick={() => handleDoubleClick(rowIndex, field, value.toString())}
-        className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center justify-center text-[#1B1B1F]"
-      >
-        {displayValue || '-'}
+      <div className="relative group h-full">
+        <div
+          onDoubleClick={() => handleDoubleClick(rowIndex, field, value.toString())}
+          className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center justify-center text-[#1B1B1F] h-full p-2"
+        >
+          {displayValue || '-'}
+        </div>
+        <button
+          onClick={e => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setCommentPopover({
+              isOpen: true,
+              position: { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX },
+              commentableId: plan.id,
+              fieldName: field,
+              row: rowIndex,
+              iconId: `comment-icon-${plan.id}-${field}-${rowIndex}`,
+            });
+          }}
+          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+        </button>
+        {commentCount > 0 && (
+          <div className="absolute bottom-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+        )}
       </div>
     );
   };
+
+  useEffect(() => {
+    if (!commentPopover?.isOpen) return;
+    function updatePosition() {
+      const icon = document.getElementById(commentPopover.iconId);
+      if (icon && popoverRef.current) {
+        const rect = icon.getBoundingClientRect();
+        const popover = popoverRef.current;
+        const popoverWidth = popover.offsetWidth;
+        const popoverHeight = popover.offsetHeight;
+        const { innerWidth, innerHeight } = window;
+        let left = rect.left;
+        let top = rect.bottom;
+        if (left + popoverWidth > innerWidth) {
+          left = innerWidth - popoverWidth - 8;
+        }
+        if (top + popoverHeight > innerHeight) {
+          top = rect.top - popoverHeight;
+        }
+        setCommentPopover(prev => prev && ({
+          ...prev,
+          position: { top, left }
+        }));
+      }
+    }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [commentPopover]);
+
+  useEffect(() => {
+    if (!commentPopover?.isOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCommentPopover(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [commentPopover]);
 
   if (loading) return <div className="flex justify-center items-center h-64"><p>Loading...</p></div>;
   if (error) return <div className="flex justify-center items-center h-64 text-red-600"><p>Error: {error}</p></div>;
@@ -440,6 +552,27 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
           </div>
         )}
       </div>
+      {commentPopover?.isOpen && ReactDOM.createPortal(
+        <div
+          ref={popoverRef}
+          className="z-50"
+          style={{
+            position: 'fixed',
+            top: commentPopover.position.top,
+            left: commentPopover.position.left,
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <CommentPopover
+            commentableType="App\\Models\\InClassPlan"
+            commentableId={commentPopover.commentableId}
+            fieldName={commentPopover.fieldName}
+            row={commentPopover.row}
+            onClose={() => setCommentPopover(null)}
+          />
+        </div>,
+        document.body
+      )}
     </>
   );
 };

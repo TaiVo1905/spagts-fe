@@ -4,8 +4,7 @@ const axiosClient = axios.create({
   baseURL: 'http://localhost:8000/api/v1',
   headers: {
     'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-    'Content-Type': 'multipart/form-data'
+    'X-Requested-With': 'XMLHttpRequest'
   },
 });
 

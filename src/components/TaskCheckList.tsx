@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import WeeklyGoalService, { WeeklyGoal } from '../services/weeklyGoalService';
 import { useAuth } from '../store/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingToFetchData from './LoadingToFetchData';
 import { useRole } from '../utils/useRole';
 import { useParams } from 'react-router-dom';
+import CommentPopover from './CommentPopover';
+import { ref, onValue, off } from 'firebase/database';
+import { database } from '../services/firebaseService';
+import ReactDOM from 'react-dom';
 
 type TaskCheckListProps = {
   selectedStartDate: string | null;
@@ -24,6 +28,16 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   const [editContent, setEditContent] = useState('');
   const { user } = useAuth();
   const { id: studentId } = useParams<{ id: string }>();
+  const [commentPopover, setCommentPopover] = useState<{
+    isOpen: boolean;
+    position: { top: number; left: number };
+    commentableId: number;
+    fieldName: string;
+    row: number;
+    iconId: string;
+  } | null>(null);
+  const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const userId = Number(studentId) || user?.id || 0;
 
@@ -42,6 +56,35 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   const filteredTasks = tasks.filter(
     (t) => t.start_date === selectedStartDate && t.end_date === selectedEndDate
   );
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribeCallbacks: (() => void)[] = [];
+    filteredTasks.forEach((task, index) => {
+      if (!task.id) return;
+      const path = `comments/App\\Models\\WeeklyGoal/${task.id}/goal_content/${index}`;
+      const key = `${task.id}-goal_content-${index}`;
+      const commentsRef = ref(database, path);
+      const unsubscribe = onValue(commentsRef, (snapshot) => {
+        const commentsData = snapshot.val();
+        if (commentsData) {
+          const count = Object.keys(commentsData).length;
+          setCommentsCount(prev => ({
+            ...prev,
+            [key]: count
+          }));
+        } else {
+          setCommentsCount(prev => ({
+            ...prev,
+            [key]: 0
+          }));
+        }
+      });
+      unsubscribeCallbacks.push(() => off(commentsRef));
+    });
+    return () => unsubscribeCallbacks.forEach(unsub => unsub());
+  }, [filteredTasks, user]);
+
+  
 
   const toggleCompletion = async (taskId: number) => {
     const updatedTasks = [...tasks];
@@ -53,7 +96,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
     setTasks(updatedTasks);
 
     try {
-      await WeeklyGoalService.update(task.id!, { is_completed: newStatus });
+     await WeeklyGoalService.update(task.id!, { is_completed: newStatus });
     } catch (error) {
       console.error('Failed to update task:', error);
       task.is_completed = !newStatus;
@@ -113,6 +156,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
       semester: semester
     };
 
+
     try {
       setIsLoading(true);
       const response = await WeeklyGoalService.add(userId, newGoal);
@@ -127,6 +171,54 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
     }
   };
 
+  
+  useEffect(() => {
+    if (!commentPopover?.isOpen) return;
+    function updatePosition() {
+      const icon = document.getElementById(commentPopover.iconId);
+      if (icon && popoverRef.current) {
+        const rect = icon.getBoundingClientRect();
+        const popover = popoverRef.current;
+        const popoverWidth = popover.offsetWidth;
+        const popoverHeight = popover.offsetHeight;
+        const { innerWidth, innerHeight } = window;
+        let left = rect.left;
+        let top = rect.bottom;
+
+        if (left + popoverWidth > innerWidth) {
+          left = innerWidth - popoverWidth - 8;
+        }
+        
+        if (top + popoverHeight > innerHeight) {
+          top = rect.top - popoverHeight;
+        }
+        setCommentPopover(prev => prev && ({
+          ...prev,
+          position: { top, left }
+        }));
+      }
+    }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [commentPopover]);
+
+  
+  useEffect(() => {
+    if (!commentPopover?.isOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCommentPopover(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [commentPopover]);
+
   if (isLoading && tasks.length === 0) {
     return <LoadingToFetchData />;
   }
@@ -135,57 +227,110 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
     <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-lg p-6 mb-8">
       <div className="w-full overflow-x-auto scrollbar-hide">
         <div className="flex gap-5">
-          {filteredTasks.map((task, index) => (
-            <div
-              key={task.id}
-              className="flex items-center gap-4 px-5 py-4 bg-gray-50 rounded-2xl border border-gray-300 shadow-sm min-w-80 max-w-md hover:shadow-md transition-all duration-200"
-            >
-              <input
-                type="checkbox"
-                checked={task.is_completed}
-                onChange={() => useRole().isStudent && toggleCompletion(task.id!)}
-                className="w-5 h-5 accent-blue-600 rounded border-gray-400"
-                readOnly={!useRole().isStudent}
-              />
-              { useRole().isStudent && editIndex === index ? (
+          {filteredTasks.map((task, index) => {
+            const commentCount = commentsCount[`${task.id}-goal_content-${index}`] || 0;
+            const iconId = `comment-icon-${task.id}-${index}`;
+            return (
+              <div
+                key={task.id}
+                className="flex items-center gap-4 px-5 py-4 bg-gray-50 rounded-2xl border border-gray-300 shadow-sm min-w-80 max-w-md hover:shadow-md transition-all duration-200"
+              >
                 <input
-                  type="text"
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveEdit(index);
-                    if (e.key === 'Escape') setEditIndex(null);
-                  }}
-                  autoFocus
-                  className="flex-grow px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  type="checkbox"
+                  checked={useRole().isStudent && task.is_completed}
+                  onChange={() => toggleCompletion(task.id!)}
+                  className="w-5 h-5 accent-blue-600 rounded border-gray-400"
+                  readOnly={useRole().isStudent}
                 />
-              ) : (
-                <span
-                  className={`flex-grow text-[15px] text-gray-800 cursor-pointer ${task.is_completed ? 'line-through text-gray-400' : ''
-                    }`}
-                  onDoubleClick={() => startEdit(index)}
-                  title="Double click to edit"
-                >
-                  {task.goal_content}
-                </span>
-              )}
-            </div>
-          ))}
+                { useRole().isStudent && editIndex === index ? (
+                  <input
+                    type="text"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEdit(index);
+                      if (e.key === 'Escape') setEditIndex(null);
+                    }}
+                    onBlur={() => setEditIndex(null)}
+                    autoFocus
+                    className="flex-grow px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                ) : (
+                  <div className="flex-grow relative group h-full"
+                    onDoubleClick={() => startEdit(index)}
+                  >
+                    <span
+                      className={`text-[15px] text-gray-800 cursor-pointer ${useRole().isStudent && task.is_completed ? 'line-through text-gray-400' : ''}`}
+                      title="Double click to edit"
+                    >
+                      {task.goal_content}
+                    </span>
+                    <button
+                      id={iconId}
+                      onClick={e => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setCommentPopover({
+                          isOpen: true,
+                          position: { top: rect.bottom, left: rect.left },
+                          commentableId: task.id!,
+                          fieldName: 'goal_content',
+                          row: index,
+                          iconId,
+                        });
+                      }}
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                    </button>
+                    {(commentCount > 0) && (
+                      <div className="absolute bottom-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {/* New task input box */}
-          {useRole().isStudent && <div className="flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border-2 border-dashed border-gray-300 min-w-80 max-w-md shadow-sm hover:border-blue-400 transition-all">
-            {/* <div className="w-5 h-5 border border-gray-300 rounded bg-white"></div> */}
-            <input
-              type="text"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="Add a new goal..."
-              onKeyDown={(e) => e.key === 'Enter' && addTask()}
-              className="flex-grow px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 text-sm"
-            />
-          </div>}
+          {useRole().isStudent && (
+            <div className="flex items-center gap-4 px-5 py-4 bg-gray-50 rounded-2xl border border-gray-300 shadow-sm min-w-80 max-w-md">
+              <input
+                type="text"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addTask();
+                }}
+                placeholder="Add new task..."
+                className="flex-grow px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+          )}
         </div>
       </div>
+      {commentPopover?.isOpen && ReactDOM.createPortal(
+        <div
+          ref={popoverRef}
+          className="z-50"
+          style={{
+            position: 'fixed',
+            top: commentPopover.position.top,
+            left: commentPopover.position.left,
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <CommentPopover
+            commentableType="App\\Models\\WeeklyGoal"
+            commentableId={commentPopover.commentableId}
+            fieldName={commentPopover.fieldName}
+            row={commentPopover.row}
+            onClose={() => setCommentPopover(null)}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
