@@ -1,16 +1,29 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import PasswordInput from "../PasswordInput.tsx";
-import { FaLock } from "react-icons/fa";
+import { useNavigate, useLocation } from 'react-router-dom';
+import userService from '../../services/userService';
+import PasswordInput from '../PasswordInput.tsx';
+import { FaLock } from 'react-icons/fa';
 
 const ResetPassword = () => {
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
+    const [error, setError] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+    const { email, code } = location.state || {};
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        navigate('/update-success');
+        if (password !== confirm) {
+            setError('Passwords do not match');
+            return;
+        }
+        try {
+            await userService.resetPassword(email, code, password);
+            navigate('/update-success');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to reset password');
+        }
     };
 
     const handleCancel = () => {
@@ -23,6 +36,8 @@ const ResetPassword = () => {
             <p className="text-base text-gray-600 mb-8 text-center">
                 Set the new password for your account to access all features.
             </p>
+
+            {error && <p className="text-red-500 text-center">{error}</p>}
 
             <PasswordInput
                 label="Enter new password"
