@@ -15,7 +15,7 @@ const LoginForm: React.FC = () => {
   const { login } = useAuth();
 
   const handleForgotPassword = () => {
-    navigate("/forgot-password", { state: { from: location.state?.from } });
+    navigate("/enter-email", { state: { from: location.state?.from } });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,7 +52,7 @@ const LoginForm: React.FC = () => {
             placeholder="your@email.com"
             icon={<FaEnvelope className="text-gray-400" />}
           />
-          
+
           <PasswordInput
             label="Password"
             value={password}
