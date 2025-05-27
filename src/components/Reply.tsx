@@ -7,6 +7,11 @@ interface ReplyProps {
     content: string;
     createdAt: string;
     replier: User;
+    mentionedUsers?: Array<{
+      id: string;
+      name: string;
+      email: string;
+    }>;
   };
   currentUser: User;
   onDeleteReply: (replyId: string) => void;
@@ -37,6 +42,17 @@ const Reply: React.FC<ReplyProps> = ({ reply, currentUser, onDeleteReply }) => {
         )}
       </div>
       <p className="ml-8 text-xs">{reply.content}</p>
+      
+      {reply.mentionedUsers && reply.mentionedUsers.length > 0 && (
+        <div className="ml-8 mt-1 flex flex-wrap gap-1">
+          <span className="text-xs text-gray-500">Mentioned:</span>
+          {reply.mentionedUsers.map(user => (
+            <span key={user.id} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              @{user.name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

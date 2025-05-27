@@ -29,3 +29,31 @@ export interface Class {
   teacher: User;
   students: User[];
 }
+
+export interface Notification {
+  id: string;
+  type: 'mention' | 'reply' | 'reaction';
+  message: string;
+  data: {
+    commentableType: string;
+    commentableId: number;
+    fieldName: string;
+    row: number;
+    commentId?: string;
+    replyId?: string;
+  };
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationBadgeProps {
+  count: number;
+  onClick: () => void;
+}
+
+export interface NotificationDropdownProps {
+  notifications: Notification[];
+  onMarkAsRead: (id: string) => void;
+  onClearAll: () => void;
+  onNotificationClick: (notification: Notification) => void;
+}

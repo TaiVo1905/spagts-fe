@@ -15,20 +15,20 @@ const teachers = [
 const TeacherCard = ({ backgroundImage, avatar, subject, name, email }) => {
   return (
     <div
-      className="flex rounded-xl overflow-hidden shadow-md ml-5"
-      style={{ width: "950px", height: "261px" }}
+      className="flex rounded-xl overflow-hidden shadow-md"
+      style={{ height: "261px" }}
     >
       <div
         className="bg-cover bg-center"
         style={{
           backgroundImage: `url(${backgroundImage})`,
-          width: "600px",
+          width: "70%",
           height: "261px",
         }}
       ></div>
       <div
-        className="bg-[#fef6f0] flex items-center p-4"
-  style={{ width: "371px", height: "261px", backgroundColor: "#FFF5EB" }}
+        className="bg-[#fef6f0] flex justify-center items-center p-4"
+  style={{ width: "30%", height: "261px", backgroundColor: "#FFF5EB" }}
       >
         <img
           src={avatar}

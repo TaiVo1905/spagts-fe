@@ -8,7 +8,7 @@ import LearningJournalPage from "../pages/student/LearningJournalPage";
 
 export const teacherRoutes: RouteObject[] =  [
       { path: "profile", element: <StudentProfilePage /> },
-      { path: "dashboard", element: <TeacherPage /> },
+      { path: "dashboard/modules/:moduleName", element: <TeacherPage /> },
       { path: "student/:id/profile", element: <StudentProfilePage /> },
       { path: "student/:id/achievement", element: <CertificatePage /> },
       { path: "student/:id/semester-goal", element: <StudentSemesterGoalPage /> },
