@@ -4,7 +4,7 @@ import { useAuth } from '../store/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingToFetchData from './LoadingToFetchData';
 import { useRole } from '../utils/useRole';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import CommentPopover from './CommentPopover';
 import { ref, onValue, off } from 'firebase/database';
 import { database } from '../services/firebaseService';
@@ -21,6 +21,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   selectedStartDate,
   selectedEndDate
 }) => {
+  const {isStudent} = useRole();
   const [tasks, setTasks] = useState<WeeklyGoal[]>([]);
   const [newTask, setNewTask] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,9 +29,12 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   const [editContent, setEditContent] = useState('');
   const { user } = useAuth();
   const { id: studentId } = useParams<{ id: string }>();
+  const location = useLocation();
+  const [filteredTasks, setFilteredTasks] = useState<WeeklyGoal[]>([]);
   const [commentPopover, setCommentPopover] = useState<{
     isOpen: boolean;
     position: { top: number; left: number };
+    commentableType: any;
     commentableId: number;
     fieldName: string;
     row: number;
@@ -40,6 +44,12 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const userId = Number(studentId) || user?.id || 0;
+
+  useEffect(() => {
+    setFilteredTasks(tasks.filter(
+    (t) => t.start_date === selectedStartDate && t.end_date === selectedEndDate
+  ));
+  }, [tasks, selectedStartDate, selectedEndDate])
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -53,9 +63,6 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
     fetchTasks();
   }, [user, semester]);
 
-  const filteredTasks = tasks.filter(
-    (t) => t.start_date === selectedStartDate && t.end_date === selectedEndDate
-  );
   useEffect(() => {
     if (!user) return;
     const unsubscribeCallbacks: (() => void)[] = [];
@@ -175,7 +182,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   useEffect(() => {
     if (!commentPopover?.isOpen) return;
     function updatePosition() {
-      const icon = document.getElementById(commentPopover.iconId);
+      const icon = document.getElementById(commentPopover!.iconId);
       if (icon && popoverRef.current) {
         const rect = icon.getBoundingClientRect();
         const popover = popoverRef.current;
@@ -219,6 +226,37 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [commentPopover]);
 
+  
+    useEffect(() => {
+      const searchParams = new URLSearchParams(location.search);
+      const fieldName = searchParams.get('field');
+      const row = searchParams.get('row');
+  
+      if ( fieldName && row !== null) {
+        const rowIndex = parseInt(row);
+        
+        const planToHighlight = filteredTasks[rowIndex];
+  
+        if (planToHighlight?.id) {
+          const iconId = `comment-icon-${planToHighlight.id}-${fieldName}-${rowIndex}`;
+          const icon = document.getElementById(iconId);
+  
+          if (icon) {
+            const rect = icon.getBoundingClientRect();
+            setCommentPopover({
+              isOpen: true,
+              position: { top: rect.bottom , left: rect.left },
+              commentableType: 'App\\Models\\WeeklyGoal',
+              commentableId: planToHighlight.id as number,
+              fieldName,
+              row: rowIndex,
+              iconId: iconId,
+            });
+          }
+        }
+      }
+    }, [location.search, filteredTasks]); 
+
   if (isLoading && tasks.length === 0) {
     return <LoadingToFetchData />;
   }
@@ -229,7 +267,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
         <div className="flex gap-5">
           {filteredTasks.map((task, index) => {
             const commentCount = commentsCount[`${task.id}-goal_content-${index}`] || 0;
-            const iconId = `comment-icon-${task.id}-${index}`;
+            const iconId = `comment-icon-${task.id}-goal_content-${index}`;
             return (
               <div
                 key={task.id}
@@ -237,12 +275,12 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
               >
                 <input
                   type="checkbox"
-                  checked={useRole().isStudent && task.is_completed}
+                  checked={isStudent && task.is_completed}
                   onChange={() => toggleCompletion(task.id!)}
                   className="w-5 h-5 accent-blue-600 rounded border-gray-400"
-                  readOnly={useRole().isStudent}
+                  readOnly={!isStudent}
                 />
-                { useRole().isStudent && editIndex === index ? (
+                { isStudent && editIndex === index ? (
                   <input
                     type="text"
                     value={editContent}
@@ -260,7 +298,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
                     onDoubleClick={() => startEdit(index)}
                   >
                     <span
-                      className={`text-[15px] text-gray-800 cursor-pointer ${useRole().isStudent && task.is_completed ? 'line-through text-gray-400' : ''}`}
+                      className={`text-[15px] text-gray-800 cursor-pointer ${isStudent && task.is_completed ? 'line-through text-gray-400' : ''}`}
                       title="Double click to edit"
                     >
                       {task.goal_content}
@@ -271,11 +309,12 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
                         const rect = e.currentTarget.getBoundingClientRect();
                         setCommentPopover({
                           isOpen: true,
+                          commentableType: 'App\\Models\\WeeklyGoal',
                           position: { top: rect.bottom, left: rect.left },
-                          commentableId: task.id!,
+                          commentableId: task.id as number,
                           fieldName: 'goal_content',
                           row: index,
-                          iconId,
+                          iconId: iconId,
                         });
                       }}
                       className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
@@ -293,8 +332,8 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
             );
           })}
 
-          {/* New task input box */}
-          {useRole().isStudent && (
+          
+          {isStudent && (
             <div className="flex items-center gap-4 px-5 py-4 bg-gray-50 rounded-2xl border border-gray-300 shadow-sm min-w-80 max-w-md">
               <input
                 type="text"
@@ -322,11 +361,11 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
           onClick={e => e.stopPropagation()}
         >
           <CommentPopover
-            commentableType="App\\Models\\WeeklyGoal"
-            commentableId={commentPopover.commentableId}
-            fieldName={commentPopover.fieldName}
-            row={commentPopover.row}
-            onClose={() => setCommentPopover(null)}
+              commentableType={commentPopover.commentableType}
+              commentableId={commentPopover.commentableId}
+              fieldName={commentPopover.fieldName}
+              row={commentPopover.row}
+              onClose={() => setCommentPopover(null)}
           />
         </div>,
         document.body

@@ -1,9 +1,9 @@
-// ClassUsersModal.tsx
 import React, { useEffect, useState } from 'react';
 import { User } from '../interface/Interface';
-import { classService, ValidationError } from '../services/classService';
+import { classService } from '../services/classService';
 import userService from '../services/userService';
 import toast from 'react-hot-toast';
+import { classUserService } from '../services/classUserService';
 
 interface ClassUsersModalProps {
   classId: number;
@@ -29,16 +29,17 @@ const ClassUsersModal: React.FC<ClassUsersModalProps> = ({ classId, open, onClos
     try {
       setLoading(true);
       const [membersResponse, allUsersResponse] = await Promise.all([
-        classService.getClassMembers(classId),
+        classUserService.getClassUsers(classId),
         userService.getUsers(1, 10000)
       ]);
       
       const allUsers = allUsersResponse.data;
+      const allClassUsers = membersResponse.data;
       setStudents(allUsers.filter((user: User) => user.roles === 'Student'));
       setTeachers(allUsers.filter((user: User) => user.roles === 'Teacher'));
       
-      setSelectedStudents(membersResponse.students.map((user: User) => user.id));
-      setSelectedTeachers(membersResponse.teachers.map((user: User) => user.id));
+      setSelectedStudents(allClassUsers.students.map((user: User) => user.id));
+      setSelectedTeachers(allClassUsers.teachers.map((user: User) => user.id));
     } catch (err: any) {
       toast.error(err.message || 'Không thể tải danh sách người dùng');
       console.error(err);
@@ -67,15 +68,13 @@ const ClassUsersModal: React.FC<ClassUsersModalProps> = ({ classId, open, onClos
     try {
       setLoading(true);
 
-      // Validate data before sending
       if (selectedStudents.length === 0 || selectedTeachers.length === 0) {
         toast.error('Vui lòng chọn ít nhất một học sinh và một giáo viên');
         return;
       }
 
-      await classService.updateClassMembers(classId, {
-        student_ids: selectedStudents,
-        teacher_ids: selectedTeachers
+      await classUserService.addUsersToClass(classId, {
+         ...selectedStudents, ...selectedTeachers
       });
 
       toast.success('Cập nhật thành viên lớp học thành công');
@@ -83,16 +82,6 @@ const ClassUsersModal: React.FC<ClassUsersModalProps> = ({ classId, open, onClos
       onClose();
     } catch (err: any) {
       console.error('Save error:', err);
-      if (err instanceof ValidationError) {
-        // Hiển thị từng lỗi validation riêng biệt
-        Object.entries(err.errors).forEach(([field, errors]) => {
-          errors.forEach(error => {
-            toast.error(error);
-          });
-        });
-      } else {
-        toast.error(err.message || 'Cập nhật thành viên lớp học thất bại');
-      }
     } finally {
       setLoading(false);
     }

@@ -13,9 +13,9 @@ const UserMentionDropdown: React.FC<UserMentionDropdownProps> = ({ users, onSele
   };
 
   return (
-    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
+    <div className="absolute z-10 bottom-full mb-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
       {users.length > 0 ? (
-        <ul className="py-1">
+        <ul className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           {users.map(user => (
             <li
               key={user.id}

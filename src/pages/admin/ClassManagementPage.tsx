@@ -22,7 +22,7 @@ const ClassManagementPage: React.FC = () => {
         const fetchClasses = async (pageNumber: number) => {
             try {
                 setLoading(true);
-                const response = await classService.getAll(pageNumber);
+                const response = await classService.getClasses(pageNumber);
                 setClasses(response.data);
                 setTotalPages(response.meta?.last_page || 1);
             } catch (err) {

@@ -4,7 +4,6 @@ import Reply from './Reply';
 import { ref, onValue, off } from 'firebase/database';
 import { database } from '../services/firebaseService';
 import UserMentionDropdown from './UserMentionDropdown';
-// import toast from 'react-hot-toast';
 
 interface CommentProps {
   comment: {
@@ -26,7 +25,7 @@ interface CommentProps {
     }>;
   };
   currentUser: User;
-  onAddReply: (content: string, mentionedUsers: any[]) => void;
+  onAddReply: (commentFirebaseId: string, content: string, mentionedUsers: any[]) => Promise<void>;
   onDeleteComment: () => void;
   onDeleteReply: (replyId: string) => void;
   commentableType: string;
@@ -64,6 +63,7 @@ const Comment: React.FC<CommentProps> = ({
   const [showUserMention, setShowUserMention] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionedUsers, setMentionedUsers] = useState<any[]>([]);
+  const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -84,13 +84,7 @@ const Comment: React.FC<CommentProps> = ({
           id,
           content: reply.content,
           createdAt: reply.createdAt,
-          replier: {
-            id: replier.id || 'unknown',
-            name: replier.name || 'Unknown User',
-            email: replier.email || '',
-            roles: replier.roles || [],
-            imageUrl: replier.imageUrl || ''
-          },
+          replier: replier as User,
           mentionedUsers: reply.mentionedUsers || []
         };
       });
@@ -108,15 +102,39 @@ const Comment: React.FC<CommentProps> = ({
     const value = e.target.value;
     setReplyContent(value);
 
-    // Check for @ mention
+    
     const cursorPos = e.target.selectionStart;
     const textBeforeCursor = value.substring(0, cursorPos);
     const atSymbolIndex = textBeforeCursor.lastIndexOf('@');
 
     if (atSymbolIndex >= 0) {
-      const query = textBeforeCursor.substring(atSymbolIndex + 1);
-      setMentionQuery(query);
-      setShowUserMention(true);
+      
+      const textAfterAt = textBeforeCursor.substring(atSymbolIndex);
+      const hasExistingMention = mentionedUsers.some(user => 
+        textAfterAt.includes(`@${user.name}`)
+      );
+
+      if (!hasExistingMention) {
+        const query = textBeforeCursor.substring(atSymbolIndex + 1);
+        setMentionQuery(query);
+        setShowUserMention(true);
+
+        
+        const textarea = e.target;
+        const textBeforeAt = textBeforeCursor.substring(0, atSymbolIndex);
+        const textMetrics = textarea.getBoundingClientRect();
+        const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight);
+        const lines = textBeforeAt.split('\n').length;
+        const charsInLastLine = textBeforeAt.split('\n').pop()?.length || 0;
+        const charWidth = 8; 
+
+        setMentionPosition({
+          top: textMetrics.top + (lines - 1) * lineHeight,
+          left: textMetrics.left + charsInLastLine * charWidth
+        });
+      } else {
+        setShowUserMention(false);
+      }
     } else {
       setShowUserMention(false);
     }
@@ -140,7 +158,7 @@ const Comment: React.FC<CommentProps> = ({
       setMentionedUsers([...mentionedUsers, selectedUser]);
       setShowUserMention(false);
       
-      // Focus back on textarea and set cursor position
+      
       setTimeout(() => {
         textarea.focus();
         textarea.selectionStart = atSymbolIndex + selectedUser.name.length + 2;
@@ -151,7 +169,7 @@ const Comment: React.FC<CommentProps> = ({
 
   const handleAddReply = () => {
     if (replyContent.trim()) {
-      onAddReply(replyContent, mentionedUsers);
+      onAddReply(comment.firebaseId, replyContent, mentionedUsers);
       setReplyContent('');
       setMentionedUsers([]);
       setIsReplying(false);
@@ -159,7 +177,7 @@ const Comment: React.FC<CommentProps> = ({
   };
 
   const filteredUsers = users.filter(u => 
-    u.id !== currentUser?.id && // Don't show current user
+    u.id !== currentUser?.id && 
     (u.email.toLowerCase().includes(mentionQuery.toLowerCase()) || 
      u.name.toLowerCase().includes(mentionQuery.toLowerCase()))
   );
@@ -169,7 +187,10 @@ const Comment: React.FC<CommentProps> = ({
   const commenterInitial = commenterName.charAt(0);
 
   return (
-    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+    <div 
+      className="mb-4 p-3 bg-gray-50 rounded-lg"
+      data-comment-id={comment.id}
+    >
       <div className="flex justify-between items-start">
         <div className="flex items-center mb-2">
           <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold mr-2">
@@ -223,6 +244,13 @@ const Comment: React.FC<CommentProps> = ({
           </button>
         ) : (
           <div className="mt-2 relative">
+            {showUserMention && mentionPosition && (
+                <UserMentionDropdown
+                  users={filteredUsers}
+                  onSelect={handleUserSelect}
+                  onClose={() => setShowUserMention(false)}
+                />
+            )}
             <textarea
               ref={textareaRef}
               value={replyContent}
@@ -230,14 +258,7 @@ const Comment: React.FC<CommentProps> = ({
               placeholder="Write a reply..."
               className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={2}
-              />
-              {showUserMention && (
-                <UserMentionDropdown
-                  users={filteredUsers}
-                  onSelect={handleUserSelect}
-                  onClose={() => setShowUserMention(false)}
-                />
-              )}
+            />
             <div className="flex justify-end space-x-2 mt-1">
               <button
                 onClick={() => {

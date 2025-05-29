@@ -175,7 +175,7 @@ const StudentCardList: React.FC = () => {
             ['self_study_plan', 'in_class_plan'].includes(log.table_name)
           );
 
-          // Tính toán overdue theo logic mới
+          
           const calculateOverdue = (records: any[], type: string) => {
             return records.filter(record => {
               if (!record.date) return false;
@@ -183,28 +183,28 @@ const StudentCardList: React.FC = () => {
               const dueDate = new Date(record.date);
               dueDate.setHours(dueDate.getHours() + 26);
               
-              // Tìm tất cả logs cho record này
+              
               const recordLogs = studentActivityLogs.filter(
                 (log: any) => log.record_id === record.id && log.table_name === type
               );
               
-              // Kiểm tra có cập nhật trước hạn không
+              
               const hasUpdateBeforeDue = recordLogs.some((log: any) => {
                 const logDate = new Date(log.created_at);
                 return logDate <= dueDate;
               });
               
-              // Kiểm record có field trống không
+              
               const isEmptyRecord = type === 'self_study_plan' 
                 ? !record.lesson_learned 
                 : !record.lesson_learned;
               
-              // Logic chính
+              
               if (!hasUpdateBeforeDue) {
-                // Không có cập nhật trước hạn -> overdue
+                
                 return true;
               } else {
-                // Có cập nhật trước hạn -> chỉ overdue nếu record trống
+                
                 return isEmptyRecord;
               }
             }).length;
@@ -215,20 +215,20 @@ const StudentCardList: React.FC = () => {
           const overdueTasks = overdueSelfStudy + overdueInClass;
           const totalTasks = studentSelfStudies.length + studentInClasses.length;
           
-          // Xác định status
+          
           const overduePercentage = totalTasks > 0 ? (overdueTasks / totalTasks) * 100 : 0;
           let status = "Stable";
           if (overduePercentage > 50) status = "At Risk";
           else if (overduePercentage > 20) status = "Warning";
 
-          // Tính activity days từ logs
+          
           const activityDays = studentActivityLogs
             .filter((log: any) => new Date(log.created_at) >= startOfWeek)
             .map((log: any) => new Date(log.created_at).getDay() + 1);
           
           const uniqueActivityDays = [...new Set(activityDays)];
 
-          // Lấy difficulty từ record gần nhất
+          
           let difficulty = "Unknown";
           if (allRecords.length > 0) {
             const latestRecord = allRecords[0];

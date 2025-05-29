@@ -57,3 +57,16 @@ export interface NotificationDropdownProps {
   onClearAll: () => void;
   onNotificationClick: (notification: Notification) => void;
 }
+
+export interface InClassPlan {
+  id?: number;
+  module_id: number;
+  date: string;
+  lesson_learned: string;
+  self_assessment: number;
+  difficulties: string;
+  plan_to_improve: string;
+  problem_solved: boolean;
+  student_id: number;
+  semester: number;
+}

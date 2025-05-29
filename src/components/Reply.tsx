@@ -18,21 +18,28 @@ interface ReplyProps {
 }
 
 const Reply: React.FC<ReplyProps> = ({ reply, currentUser, onDeleteReply }) => {
+  const replierInitial = reply.replier.name.charAt(0);
+  const replierName = reply.replier.name;
+  const replier = reply.replier;
+
   return (
-    <div className="mb-3 p-2 bg-white border border-gray-200 rounded-md">
+    <div 
+      className="ml-8 mt-2 p-2 bg-white rounded-lg border border-gray-200"
+      data-reply-id={reply.id}
+    >
       <div className="flex justify-between items-start">
         <div className="flex items-center mb-1">
           <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-semibold mr-2">
-            {reply.replier.name.charAt(0)}
+            {replierInitial}
           </div>
           <div>
-            <p className="text-xs font-semibold">{reply.replier.name}</p>
+            <p className="text-xs font-semibold">{replierName}</p>
             <p className="text-xs text-gray-500">
               {new Date(reply.createdAt).toLocaleString()}
             </p>
           </div>
         </div>
-        {reply.replier.id === currentUser.id && (
+        {replier.id === currentUser.id && (
           <button
             onClick={() => onDeleteReply(reply.id)}
             className="text-xs text-red-500 hover:text-red-700"
@@ -41,7 +48,7 @@ const Reply: React.FC<ReplyProps> = ({ reply, currentUser, onDeleteReply }) => {
           </button>
         )}
       </div>
-      <p className="ml-8 text-xs">{reply.content}</p>
+      <p className="ml-8 text-sm">{reply.content}</p>
       
       {reply.mentionedUsers && reply.mentionedUsers.length > 0 && (
         <div className="ml-8 mt-1 flex flex-wrap gap-1">

@@ -9,7 +9,7 @@ import { useRole } from '../../utils/useRole';
 import CommentPopover from '../../components/CommentPopover';
 import { ref, onValue, off } from 'firebase/database';
 import { database } from '../../services/firebaseService';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 
 const initialGoalsBySemester: Record<string, SemesterGoal[]> = {
     S1: [], S2: [], S3: [], S4: [], S5: [], S6: [],
@@ -27,6 +27,7 @@ const StudentSemesterGoal: React.FC<{
     setGoals: (goals: SemesterGoal[]) => void 
 }> = ({ semester, goals, setGoals }) => {
     const { user } = useAuth();
+    const location = useLocation();
     const [editingCell, setEditingCell] = useState<{ index: number; field: keyof SemesterGoal } | null>(null);
     const [tempValue, setTempValue] = useState<string>('');
     const [commentPopover, setCommentPopover] = useState<{
@@ -40,42 +41,60 @@ const StudentSemesterGoal: React.FC<{
     const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
 
     useEffect(() => {
-    if (!user) return;
+        if (!user) return;
 
-    const unsubscribeCallbacks: (() => void)[] = [];
+        const unsubscribeCallbacks: (() => void)[] = [];
 
-    goals.forEach((goal, index) => {
-        if (!goal.id) return;
-        
-        ['course', 'courseExpectation', 'teacherExpectation', 'selfExpectation', 'studentEvaluation', 'teacherEvaluation'].forEach((field) => {
-            
-            const path = `comments/App\\Models\\SemesterGoal/${goal.id}/${field}/${index}`;
-            const commentsRef = ref(database, path);
-            
-            const unsubscribe = onValue(commentsRef, (snapshot) => {
-                const commentsData = snapshot.val();
-                if (commentsData) {
+        goals.forEach((goal, index) => {
+            ['course', 'courseExpectation', 'teacherExpectation', 'selfExpectation', 'studentEvaluation', 'teacherEvaluation'].forEach((field) => {
+                // Updated path construction
+                const path = `comments/App\\Models\\SemesterGoal/${goal.id}/${field}/${index}`;
+                const commentsRef = ref(database, path);
+                
+                const unsubscribe = onValue(commentsRef, (snapshot) => {
+                    const commentsData = snapshot.val();
+                    const count = commentsData ? Object.keys(commentsData).length : 0;
                     
-                    const count = Object.keys(commentsData).length;
                     setCommentsCount(prev => ({
                         ...prev,
                         [`${goal.id}-${field}-${index}`]: count
                     }));
-                } else {
-                    
-                    setCommentsCount(prev => ({
-                        ...prev,
-                        [`${goal.id}-${field}-${index}`]: 0
-                    }));
-                }
+                });
+
+                unsubscribeCallbacks.push(() => off(commentsRef));
             });
-
-            unsubscribeCallbacks.push(() => off(commentsRef));
         });
-    });
 
-    return () => unsubscribeCallbacks.forEach(unsub => unsub());
-}, [goals, user]);
+        return () => unsubscribeCallbacks.forEach(unsub => unsub());
+    }, [goals, user]);
+
+    // Add effect to handle highlight params
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const shouldHighlight = searchParams.get('highlight') === 'true';
+        const fieldName = searchParams.get('field');
+        const row = searchParams.get('row');
+
+        if (shouldHighlight && fieldName && row !== null) {
+            const rowIndex = parseInt(row);
+            const goal = goals[rowIndex];
+            if (goal?.id !== undefined) {
+                const iconId = `comment-icon-${goal.id}-${fieldName}-${rowIndex}`;
+                const icon = document.getElementById(iconId);
+                if (icon) {
+                    const rect = icon.getBoundingClientRect();
+                    setCommentPopover({
+                        isOpen: true,
+                        position: { top: rect.bottom, left: rect.left },
+                        commentableType: 'App\\Models\\SemesterGoal',
+                        commentableId: goal.id as number,
+                        fieldName,
+                        row: rowIndex,
+                    });
+                }
+            }
+        }
+    }, [location.search, goals]);
 
     const handleDoubleClick = (index: number, field: keyof SemesterGoal, value: string) => {
         if (!useRole().isStudent) return;
@@ -87,10 +106,17 @@ const StudentSemesterGoal: React.FC<{
         if (!editingCell || !user) return;
 
         const { index, field } = editingCell;
-        if (tempValue !== (goals[index][field] || '')) {
+        const goal = goals[index];
+        if (!goal?.id || goal.semester === undefined) return;
+
+        if (tempValue !== (goal[field] || '')) {
             try {
-                await semesterGoalService.update(goals[index].id, { [field]: tempValue });
-                const updatedGoals = goals.map((goal, i) => i === index ? { ...goal, [field]: tempValue } : goal);
+                const updateData = {
+                    ...goal,
+                    [field]: tempValue
+                };
+                await semesterGoalService.update(goal.id, updateData);
+                const updatedGoals = goals.map((g, i) => i === index ? { ...g, [field]: tempValue } : g);
                 setGoals(updatedGoals);
                 toast.success('Goal updated successfully!');
             } catch (error) {
@@ -126,12 +152,13 @@ const StudentSemesterGoal: React.FC<{
         }
     };
 
-    const renderCell = (index: number, field: keyof SemesterGoal, value: string) => {
+    const renderCell = (index: number, field: keyof SemesterGoal, value: string | number) => {
         const isEditing = editingCell?.index === index && editingCell?.field === field;
         const goal = goals[index];
-        if (!goal.id) return null;
+        if (!goal?.id || goal.semester === undefined) return null;
         
         const commentCount = commentsCount[`${goal.id}-${field}-${index}`] || 0;
+        const iconId = `comment-icon-${goal.id}-${field}-${index}`;
 
         if (isEditing && useRole().isStudent) {
             return field === 'course' ? (
@@ -160,20 +187,24 @@ const StudentSemesterGoal: React.FC<{
         return (
             <div className="relative group h-full">
                 <div
-                    onDoubleClick={() => handleDoubleClick(index, field, value)}
+                    onDoubleClick={() => handleDoubleClick(index, field, value.toString())}
                     className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center text-[#1B1B1F] h-full p-2"
                 >
                     {value || '-'}
                 </div>
                 
                 <button
-                    onClick={(e) => {
+                    id={iconId}
+                    onClick={e => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setCommentPopover({
                             isOpen: true,
-                            position: { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX },
+                            position: { 
+                                top: rect.bottom + window.scrollY, 
+                                left: rect.left + window.scrollX 
+                            },
                             commentableType: 'App\\Models\\SemesterGoal',
-                            commentableId: goal.id,
+                            commentableId: goal.id as number,
                             fieldName: field,
                             row: index,
                         });
@@ -336,7 +367,7 @@ const SemesterGoalPage: React.FC = () => {
         }
 
         try {
-            const { data: addedGoal } = await semesterGoalService.add(Number(studentId) || user.id, {
+            const { data: addedGoal } = await semesterGoalService.add(Number(studentId), {
                 ...data,
                 semester: selectedSemester
             });

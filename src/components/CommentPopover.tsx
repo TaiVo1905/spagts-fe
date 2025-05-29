@@ -5,7 +5,7 @@ import { ref, onValue, off, push, remove } from 'firebase/database';
 import { database } from '../services/firebaseService';
 import UserMentionDropdown from './UserMentionDropdown';
 import toast from 'react-hot-toast';
-import userService from '../services/userService'; // Import your user service
+import userService from '../services/userService'; 
 
 interface CommentPopoverProps {
   commentableType: string;
@@ -24,7 +24,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
 }) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<any[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [commentContent, setCommentContent] = useState('');
   const [showUserMention, setShowUserMention] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionedUsers, setMentionedUsers] = useState<any[]>([]);
@@ -35,7 +35,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
   useEffect(() => {
     if (!user) return;
 
-    // Load comments
+    
     const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}`;
     const commentsRef = ref(database, path);
     
@@ -70,7 +70,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
     };
   }, [commentableType, commentableId, fieldName, row, user]);
 
-  // Load users from API when component mounts or user changes
+  
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
@@ -92,15 +92,25 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
-    setNewComment(value);
+    setCommentContent(value);
 
-    // Check for @ mention
+    
     const cursorPos = e.target.selectionStart;
     const textBeforeCursor = value.substring(0, cursorPos);
     const atSymbolIndex = textBeforeCursor.lastIndexOf('@');
 
     if (atSymbolIndex >= 0) {
       const query = textBeforeCursor.substring(atSymbolIndex + 1);
+      mentionedUsers.forEach((mentionedUser, index) => {
+        if(!textBeforeCursor.includes('@' + mentionedUser.name)) {
+          if(index = mentionedUsers.length) mentionedUsers.pop();
+          mentionedUsers.slice(index, index + 1);
+        }
+      })
+    if(query.includes(' ') && (textBeforeCursor.split('@').length - 1 == mentionedUsers.length)){
+      setShowUserMention(false);
+      return;
+    } 
       setMentionQuery(query);
       setShowUserMention(true);
     } else {
@@ -113,36 +123,36 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
 
     const textarea = textareaRef.current;
     const cursorPos = textarea.selectionStart;
-    const textBeforeCursor = newComment.substring(0, cursorPos);
+    const textBeforeCursor = commentContent.substring(0, cursorPos);
     const atSymbolIndex = textBeforeCursor.lastIndexOf('@');
 
     if (atSymbolIndex >= 0) {
       const newText = 
-        newComment.substring(0, atSymbolIndex) + 
-        `@${selectedUser.name}` + 
-        newComment.substring(cursorPos);
+        commentContent.substring(0, atSymbolIndex) + 
+        `@${selectedUser.name} ` +
+        commentContent.substring(cursorPos);
 
-      setNewComment(newText);
+      setCommentContent(newText);
       setMentionedUsers([...mentionedUsers, selectedUser]);
       setShowUserMention(false);
       
-      // Focus back on textarea and set cursor position
+      
       setTimeout(() => {
         textarea.focus();
-        textarea.selectionStart = atSymbolIndex + selectedUser.name.length + 1;
-        textarea.selectionEnd = atSymbolIndex + selectedUser.name.length + 1;
+        textarea.selectionStart = atSymbolIndex + selectedUser.name.length + 2;
+        textarea.selectionEnd = atSymbolIndex + selectedUser.name.length + 2;
       }, 0);
     }
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !user) return;
+    if (!commentContent.trim() || !user) return;
 
     const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}`;
     const commentsRef = ref(database, path);
     
     const newCommentData = {
-      content: newComment,
+      content: commentContent,
       createdAt: new Date().toISOString(),
       commenter: {
         id: user.id,
@@ -151,51 +161,47 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
         roles: user.roles,
         imageUrl: user.imageUrl
       },
-      mentionedUsers: mentionedUsers.map(user => ({
-        id: user.id,
-        email: user.email,
-        name: user.name
-      }))
+      mentionedUsers: mentionedUsers
     };
 
     try {
       const commentRef = await push(commentsRef, newCommentData);
-      setNewComment('');
+      setCommentContent('');
       setMentionedUsers([]);
 
-      // Send notifications to mentioned users
+      
       mentionedUsers.forEach(mentionedUser => {
         if (mentionedUser.id !== user.id) {
-          sendNotification(
-            mentionedUser.id,
-            'mention',
-            `${user.name} mentioned you in a comment`,
-            {
+          const notificationPath = `notifications/${mentionedUser.id}`;
+          const notificationRef = ref(database, notificationPath);
+          push(notificationRef, {
+            type: 'mention',
+            message: `${user.name} mentioned you in a comment`,
+            createdAt: new Date().toISOString(),
+            read: false,
+            data: {
               commentableType,
               commentableId,
               fieldName,
               row,
-              commentId: commentRef.key
+              commentId: commentRef.key,
+              semester: commentableType.includes('SemesterGoal') ? 1 : 
+                       commentableType.includes('WeeklyGoal') ? 1 :
+                       commentableType.includes('InClassPlan') ? 1 :
+                       commentableType.includes('SelfStudyPlan') ? 1 : 1
             }
-          );
+          });
         }
       });
 
       toast.success('Comment added successfully');
     } catch (error) {
       toast.error('Failed to add comment');
-      console.error(error);
+      console.error('Error adding comment:', error);
     }
   };
 
-  const handleDeleteComment = async (firebaseId: string) => {
-    const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${firebaseId}`;
-    const commentRef = ref(database, path);
-    await remove(commentRef);
-    toast.success('Comment deleted successfully');
-  };
-
-  const handleAddReply = async (commentId: string, content: string, replyMentionedUsers: any[] = []) => {
+  const handleAddReply = async (commentId: string, content: string, mentionedUsers: any[]) => {
     if (!content.trim() || !user) return;
 
     const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies`;
@@ -211,7 +217,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
         roles: user.roles,
         imageUrl: user.imageUrl
       },
-      mentionedUsers: replyMentionedUsers.map(user => ({
+      mentionedUsers: mentionedUsers.map(user => ({
         id: user.id,
         email: user.email,
         name: user.name
@@ -221,63 +227,77 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
     try {
       const replyRef = await push(repliesRef, newReplyData);
 
-      // Send notifications to mentioned users
-      replyMentionedUsers.forEach(mentionedUser => {
+      
+      mentionedUsers.forEach(mentionedUser => {
         if (mentionedUser.id !== user.id) {
-          sendNotification(
-            mentionedUser.id,
-            'mention',
-            `${user.name} mentioned you in a reply`,
-            {
+          const notificationPath = `notifications/${mentionedUser.id}`;
+          const notificationRef = ref(database, notificationPath);
+          push(notificationRef, {
+            type: 'mention',
+            message: `${user.name} mentioned you in a reply`,
+            createdAt: new Date().toISOString(),
+            read: false,
+            data: {
               commentableType,
               commentableId,
               fieldName,
               row,
               commentId,
-              replyId: replyRef.key
+              replyId: replyRef.key,
+              semester: commentableType.includes('SemesterGoal') ? 1 : 
+                       commentableType.includes('WeeklyGoal') ? 1 :
+                       commentableType.includes('InClassPlan') ? 1 :
+                       commentableType.includes('SelfStudyPlan') ? 1 : 1
             }
-          );
+          });
         }
       });
 
       toast.success('Reply added successfully');
     } catch (error) {
       toast.error('Failed to add reply');
-      console.error(error);
+      console.error('Error adding reply:', error);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) return;
+
+    try {
+      const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}`;
+      const commentRef = ref(database, path);
+      await remove(commentRef);
+      toast.success('Comment deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete comment');
+      console.error('Error deleting comment:', error);
     }
   };
 
   const handleDeleteReply = async (commentId: string, replyId: string) => {
-    const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies/${replyId}`;
-    const replyRef = ref(database, path);
-    await remove(replyRef);
-    toast.success('Reply deleted successfully');
+    if (!user) return;
+
+    try {
+      const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies/${replyId}`;
+      const replyRef = ref(database, path);
+      await remove(replyRef);
+      toast.success('Reply deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete reply');
+      console.error('Error deleting reply:', error);
+    }
   };
 
-  const sendNotification = async (userId: string, type: string, message: string, data: any) => {
-    const notificationsRef = ref(database, `notifications/${userId}`);
-    await push(notificationsRef, {
-      type,
-      message,
-      data,
-      read: false,
-      createdAt: new Date().toISOString()
-    });
-  };
-
-  if (!user) return null;
-
-  // Filter users for mention dropdown
   const filteredUsers = users.filter(u => 
-    u.id !== user.id && // Don't show current user
+    u.id !== user?.id && 
     (u.email.toLowerCase().includes(mentionQuery.toLowerCase()) || 
      u.name.toLowerCase().includes(mentionQuery.toLowerCase()))
   );
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-4 w-96 max-h-[400px] overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Comments</h3>
+    <div className="absolute z-50 w-80 bg-white shadow-xl rounded-lg border border-gray-200 p-4">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-semibold text-gray-700">Comments</h3>
         <button
           onClick={onClose}
           className="text-gray-500 hover:text-gray-700"
@@ -285,48 +305,51 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
           ×
         </button>
       </div>
-
-      <div className="space-y-4">
-        {comments.map((comment) => (
-          <Comment
-            key={comment.id}
-            comment={comment}
-            currentUser={user}
-            onAddReply={handleAddReply}
-            onDeleteComment={() => handleDeleteComment(comment.firebaseId)}
-            onDeleteReply={(replyId) => handleDeleteReply(comment.firebaseId, replyId)}
-            commentableType={commentableType}
-            commentableId={commentableId}
-            fieldName={fieldName}
-            row={row}
-            users={users}
-          />
-        ))}
+      
+      <div className="max-h-64 overflow-y-auto mb-3">
+        {comments.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">No comments yet</p>
+        ) : (
+          comments.map((comment) => (
+            <Comment
+              key={comment.id}
+              comment={comment}
+              currentUser={user!}
+              onAddReply={(commentFirebaseId, content, mentionedUsers) => handleAddReply(commentFirebaseId, content, mentionedUsers)}
+              onDeleteComment={() => handleDeleteComment(comment.firebaseId)}
+              onDeleteReply={(replyId) => handleDeleteReply(comment.firebaseId, replyId)}
+              commentableType={commentableType}
+              commentableId={commentableId}
+              fieldName={fieldName}
+              row={row}
+              users={users}
+            />
+          ))
+        )}
       </div>
-
-      <div className="mt-4 relative">
+      
+      <div className="relative border-t border-gray-200 pt-3">
         <textarea
           ref={textareaRef}
-          value={newComment}
+          value={commentContent}
           onChange={handleTextareaChange}
-          placeholder="Write a comment..."
-          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={3}
+          placeholder="Add a comment..."
+          className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          rows={2}
         />
         {showUserMention && (
           <UserMentionDropdown
             users={filteredUsers}
             onSelect={handleUserSelect}
             onClose={() => setShowUserMention(false)}
-            isLoading={isLoadingUsers}
           />
         )}
         <div className="flex justify-end mt-2">
           <button
             onClick={handleAddComment}
-            disabled={!newComment.trim()}
-            className={`px-4 py-2 rounded-md ${
-              newComment.trim()
+            disabled={!commentContent.trim()}
+            className={`px-3 py-1 text-sm rounded-md ${
+              commentContent.trim()
                 ? 'bg-blue-500 text-white hover:bg-blue-600'
                 : 'bg-gray-200 text-gray-500 cursor-not-allowed'
             }`}

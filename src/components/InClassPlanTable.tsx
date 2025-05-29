@@ -5,9 +5,10 @@ import moduleService from '../services/moduleService';
 import { toast } from 'react-hot-toast';
 import { useRole } from '../utils/useRole';
 import CommentPopover from './CommentPopover';
-import { ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off, push } from 'firebase/database';
 import { database } from '../services/firebaseService';
 import ReactDOM from 'react-dom';
+import { useParams, useLocation } from 'react-router-dom';
 
 interface Module {
   id: number;
@@ -21,6 +22,7 @@ type InClassGoalProps = {
 };
 
 const emptyPlanData: InClassPlan = {
+  id: 0,
   module_id: 0,
   date: new Date().toISOString().slice(0, 10),
   lesson_learned: '',
@@ -64,6 +66,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   const [commentPopover, setCommentPopover] = useState<{
     isOpen: boolean;
     position: { top: number; left: number };
+    commentableType: any;
     commentableId: number;
     fieldName: string;
     row: number;
@@ -71,6 +74,10 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   } | null>(null);
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
   const popoverRef = useRef<HTMLDivElement>(null);
+  const {isStudent} = useRole();
+  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const studentId = Number(id) || (user?.id || 0);
 
   useEffect(() => {
     if (!selectedStartDate || !selectedEndDate) {
@@ -88,7 +95,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.id) {
+      if (!user) {
         setError('Please log in to view plans.');
         setLoading(false);
         return;
@@ -96,7 +103,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
 
       try {
         setLoading(true);
-        const plansData = (await inClassPlanService.getAll(user.id, semester)).data;
+        const plansData = (await inClassPlanService.getAll(studentId, semester)).data;
         setPlans(plansData);
 
         const modulesResponse = (await moduleService.getAll()).data;
@@ -113,6 +120,55 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     };
     fetchData();
   }, [user, semester]);
+
+  useEffect(() => {
+  if (!commentPopover?.isOpen) return;
+  
+  function updatePosition() {
+    const icon = document.getElementById(commentPopover.iconId);
+    if (icon && popoverRef.current) {
+      const rect = icon.getBoundingClientRect();
+      const popover = popoverRef.current;
+      const popoverWidth = popover.offsetWidth;
+      const popoverHeight = popover.offsetHeight;
+      const { innerWidth, innerHeight } = window;
+      let left = rect.left;
+      let top = rect.bottom;
+
+      if (left + popoverWidth > innerWidth) {
+        left = innerWidth - popoverWidth - 8;
+      }
+      
+      if (top + popoverHeight > innerHeight) {
+        top = rect.top - popoverHeight;
+      }
+      
+      setCommentPopover(prev => prev && ({
+        ...prev,
+        position: { top, left }
+      }));
+    }
+  }
+  
+  updatePosition();
+  window.addEventListener('scroll', updatePosition, true);
+  window.addEventListener('resize', updatePosition);
+  
+  return () => {
+    window.removeEventListener('scroll', updatePosition, true);
+    window.removeEventListener('resize', updatePosition);
+  };
+}, [commentPopover]);
+useEffect(() => {
+      if (!commentPopover?.isOpen) return;
+      function handleClick(e: MouseEvent) {
+        if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+          setCommentPopover(null);
+        }
+      }
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }, [commentPopover]);
 
   useEffect(() => {
     if (!user) return;
@@ -143,6 +199,38 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     });
     return () => unsubscribeCallbacks.forEach(unsub => unsub());
   }, [filteredPlans, user]);
+
+  
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shouldHighlight = searchParams.get('highlight') === 'true';
+    const fieldName = searchParams.get('field');
+    const row = searchParams.get('row');
+
+    if (shouldHighlight && fieldName && row !== null) {
+      const rowIndex = parseInt(row);
+      
+      const planToHighlight = filteredPlans[rowIndex];
+
+      if (planToHighlight?.id) {
+        const iconId = `comment-icon-${planToHighlight.id}-${fieldName}-${rowIndex}`;
+        const icon = document.getElementById(iconId);
+
+        if (icon) {
+          const rect = icon.getBoundingClientRect();
+          setCommentPopover({
+            isOpen: true,
+            position: { top: rect.bottom, left: rect.left },
+            commentableType: 'App\\Models\\InClassPlan',
+            commentableId: planToHighlight.id as number,
+            fieldName,
+            row: rowIndex,
+            iconId: iconId,
+          });
+        }
+      }
+    }
+  }, [location.search, filteredPlans]); 
 
   const handleDoubleClick = (rowIndex: number, field: keyof InClassPlan, value: string) => {
     setEditingCell({ row: rowIndex, field });
@@ -238,7 +326,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     try {
       setLoading(true);
       const planData = { ...newPlan, student_id: user.id, semester: semester };
-      const response = await inClassPlanService.add(user.id, planData);
+      const response = await inClassPlanService.add(studentId, planData);
       setPlans((prev) => [...prev, response.data]); 
       setShowModal(false);
       setNewPlan({ ...emptyPlanData, student_id: user.id, semester: semester });
@@ -267,7 +355,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
       ? value ? 'Yes' : 'No'
       : value;
 
-    if (useRole().isStudent && isEditing) {
+    if (isStudent && isEditing) {
       if (field === 'problem_solved') {
         return (
           <select
@@ -283,6 +371,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
           </select>
         );
       }
+
       return (
         <input
           type={field === 'date' ? 'date' : field === 'self_assessment' ? 'number' : 'text'}
@@ -297,25 +386,34 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
         />
       );
     }
+
     return (
       <div className="relative group h-full">
         <div
           onDoubleClick={() => handleDoubleClick(rowIndex, field, value.toString())}
           className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center justify-center text-[#1B1B1F] h-full p-2"
+          data-field={field}
+          data-row={rowIndex}
         >
           {displayValue || '-'}
         </div>
+
         <button
+          id={`comment-icon-${plan.id}-${field}-${rowIndex}`}
           onClick={e => {
             const rect = e.currentTarget.getBoundingClientRect();
-            setCommentPopover({
-              isOpen: true,
-              position: { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX },
-              commentableId: plan.id,
-              fieldName: field,
-              row: rowIndex,
-              iconId: `comment-icon-${plan.id}-${field}-${rowIndex}`,
-            });
+                        setCommentPopover({
+                            isOpen: true,
+                            position: { 
+                                top: rect.bottom + window.scrollY, 
+                                left: rect.left + window.scrollX 
+                            },
+                            commentableType: 'App\\Models\\InClassPlan',
+                            commentableId: plan.id as number,
+                            fieldName: field,
+                            row: rowIndex,
+                            iconId: `comment-icon-${plan.id}-${field}-${rowIndex}`
+                        });
           }}
           className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
         >
@@ -330,50 +428,6 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     );
   };
 
-  useEffect(() => {
-    if (!commentPopover?.isOpen) return;
-    function updatePosition() {
-      const icon = document.getElementById(commentPopover.iconId);
-      if (icon && popoverRef.current) {
-        const rect = icon.getBoundingClientRect();
-        const popover = popoverRef.current;
-        const popoverWidth = popover.offsetWidth;
-        const popoverHeight = popover.offsetHeight;
-        const { innerWidth, innerHeight } = window;
-        let left = rect.left;
-        let top = rect.bottom;
-        if (left + popoverWidth > innerWidth) {
-          left = innerWidth - popoverWidth - 8;
-        }
-        if (top + popoverHeight > innerHeight) {
-          top = rect.top - popoverHeight;
-        }
-        setCommentPopover(prev => prev && ({
-          ...prev,
-          position: { top, left }
-        }));
-      }
-    }
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [commentPopover]);
-
-  useEffect(() => {
-    if (!commentPopover?.isOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setCommentPopover(null);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [commentPopover]);
-
   if (loading) return <div className="flex justify-center items-center h-64"><p>Loading...</p></div>;
   if (error) return <div className="flex justify-center items-center h-64 text-red-600"><p>Error: {error}</p></div>;
 
@@ -381,7 +435,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     <>
       <div className='relative'>
         <h3 className="text-[28px] font-semibold text-[#21BAEA] py-3 pl-2">In-class plan:</h3>
-        {useRole().isStudent && <button
+        {isStudent && <button
           onClick={handleAdd}
           className="absolute bottom-3 right-4 flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] z-40"
         >
@@ -398,14 +452,14 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
                   {label}
                 </div>
               ))}
-              {useRole().isStudent && <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
+              {isStudent && <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
                 Actions
               </div>}
             </div>
             
             {filteredPlans.length === 0 ? (
               <div className="py-10 text-start pl-10 text-gray-500">
-                No plans yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "'Add new plan'"}</span> {useRole().isStudent && "to start!"}
+                No plans yet. {isStudent && "Click"} <span className="text-[#21BAEA]">{isStudent && "'Add new plan'"}</span> {isStudent && "to start!"}
               </div>
             ) : (
               filteredPlans.map((plan, rowIndex) => (
@@ -425,7 +479,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
                       </div>
                     );
                   })}
-                  {useRole().isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
+                  {isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
                     <button
                       onClick={() => handleDelete(rowIndex)}
                       className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -564,11 +618,11 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
           onClick={e => e.stopPropagation()}
         >
           <CommentPopover
-            commentableType="App\\Models\\InClassPlan"
-            commentableId={commentPopover.commentableId}
-            fieldName={commentPopover.fieldName}
-            row={commentPopover.row}
-            onClose={() => setCommentPopover(null)}
+              commentableType={commentPopover.commentableType}
+              commentableId={commentPopover.commentableId}
+              fieldName={commentPopover.fieldName}
+              row={commentPopover.row}
+              onClose={() => setCommentPopover(null)}
           />
         </div>,
         document.body

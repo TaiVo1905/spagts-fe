@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, off, push, set, remove } from 'firebase/database';
+import { getDatabase, ref, onValue, off, push, set, remove, get } from 'firebase/database';
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -27,10 +27,12 @@ export const listenToComments = (
   const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}`;
   const commentsRef = ref(database, path);
   
-  return onValue(commentsRef, (snapshot) => {
+  const unsubscribe = onValue(commentsRef, (snapshot) => {
     const commentsData = snapshot.val();
-    callback(commentsData || {});
+    callback(commentsData);
   });
+
+  return unsubscribe;
 };
 
 export const addComment = async (
@@ -41,12 +43,13 @@ export const addComment = async (
   comment: any
 ) => {
   const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}`;
-  const newCommentRef = push(ref(database, path));
+  const commentsRef = ref(database, path);
+  const newCommentRef = push(commentsRef);
   await set(newCommentRef, comment);
   return newCommentRef.key;
 };
 
-export const deleteComment = (
+export const deleteComment = async (
   commentableType: string,
   commentableId: number,
   fieldName: string,
@@ -54,7 +57,8 @@ export const deleteComment = (
   commentId: string
 ) => {
   const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}`;
-  return remove(ref(database, path));
+  const commentRef = ref(database, path);
+  await remove(commentRef);
 };
 
 export const listenToReplies = (
@@ -83,12 +87,13 @@ export const addReply = async (
   reply: any
 ) => {
   const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies`;
-  const newReplyRef = push(ref(database, path));
+  const repliesRef = ref(database, path);
+  const newReplyRef = push(repliesRef);
   await set(newReplyRef, reply);
   return newReplyRef.key;
 };
 
-export const deleteReply = (
+export const deleteReply = async (
   commentableType: string,
   commentableId: number,
   fieldName: string,
@@ -97,5 +102,33 @@ export const deleteReply = (
   replyId: string
 ) => {
   const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies/${replyId}`;
-  return remove(ref(database, path));
+  const replyRef = ref(database, path);
+  await remove(replyRef);
+};
+
+export const getComment = async (
+  commentableType: string,
+  commentableId: number,
+  fieldName: string,
+  row: number,
+  commentId: string
+) => {
+  const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}`;
+  const commentRef = ref(database, path);
+  const snapshot = await get(commentRef);
+  return snapshot.val();
+};
+
+export const getReply = async (
+  commentableType: string,
+  commentableId: number,
+  fieldName: string,
+  row: number,
+  commentId: string,
+  replyId: string
+) => {
+  const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies/${replyId}`;
+  const replyRef = ref(database, path);
+  const snapshot = await get(replyRef);
+  return snapshot.val();
 };

@@ -1,51 +1,79 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import NotificationBadge from './NotificationBadge';
 import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../store/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { useRole } from '../utils/useRole';
+import axiosClient from '../services/axiosClient';
 
 const NotificationBell: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { role } = useRole();
   const {
     notifications,
     unreadCount,
-    isLoading,
     markAsRead,
     markAllAsRead,
     clearAll
-  } = useNotifications(user?.id);
+  } = useNotifications(user?.id ? user.id.toString() : '');
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleNotificationClick = (notification: any) => {
-    
+  const handleNotificationClick = async (notification: any) => {
     const { commentableType, commentableId, fieldName, row, commentId, replyId } = notification.data;
     
     
     setIsOpen(false);
     
-    // You'll need to implement this navigation based on your app structure
-    toast.success('Navigating to the comment...');
-    console.log('Navigate to:', { commentableType, commentableId, fieldName, row, commentId, replyId });
     
-    // Example navigation (adjust based on your routes):
-    // navigate(`/some-path/${commentableType}/${commentableId}?field=${fieldName}&row=${row}&comment=${commentId}`);
+    markAsRead(notification.id);
+
+    
+    let studentId;
+      console.log((commentableType === 'App\\Models\\InClassPlan'))
+
+    if (commentableType === 'App\\Models\\SemesterGoal') {
+      studentId = (await axiosClient.get(`semesterGoals/${commentableId}`)).data.data.studentId;
+      console.log(1)
+
+    } else if(commentableType === 'App\\Models\\WeeklyGoal') {
+        studentId = (await axiosClient.get(`weekly-goals/${commentableId}`)).data.data.student_id;
+        console.log(2)
+
+    } else if(commentableType === 'App\\Models\\InClassPlan') {
+        studentId = (await axiosClient.get(`in-class-plan/${commentableId}`)).data.data.student.id;
+      console.log(3)
+
+    } else if(commentableType === 'App\\Models\\SelfStudyPlan') {
+        studentId = (await axiosClient.get(`self-study-plans/${commentableId}`)).data.data.student.id;
+    }
+    console.log(studentId)
+    const basePath = role === 'Teacher' ? `/teacher/student/${studentId}` : '/student';
+    
+    
+    let targetPath = '';
+    if (commentableType === 'App\\Models\\SemesterGoal') {
+      targetPath = `${basePath}/semester-goal`;
+    } else if (commentableType === 'App\\Models\\WeeklyGoal') {
+      targetPath = `${basePath}/learning-journal/semester${notification.data.semester}`;
+    } else if (commentableType === 'App\\Models\\InClassPlan') {
+      targetPath = `${basePath}/learning-journal/semester${notification.data.semester}`;
+    } else if (commentableType === 'App\\Models\\SelfStudyPlan') {
+      targetPath = `${basePath}/learning-journal/semester${notification.data.semester}`;
+    }
+
+    
+    const queryParams = new URLSearchParams({
+      highlight: 'true',
+      field: fieldName,
+      row: row.toString(),
+      commentId: commentId || '',
+      replyId: replyId || ''
+    });
+
+    
+    navigate(`${targetPath}?${queryParams.toString()}`);
   };
 
   const handleMarkAsRead = (id: string) => {
@@ -57,7 +85,7 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <NotificationBadge 
         count={unreadCount} 
         onClick={() => setIsOpen(!isOpen)}
