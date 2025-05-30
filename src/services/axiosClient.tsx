@@ -16,7 +16,7 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Add response interceptor for error handling
+
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {

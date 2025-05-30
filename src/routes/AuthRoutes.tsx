@@ -1,5 +1,4 @@
 import { RouteObject } from "react-router-dom";
-// import AuthLayout from "../layouts/AuthLayout";
 import LoginPage from "../pages/auth/LoginPage";
 import EnterEmailPage from "../pages/auth/forgetPassword/EnterEmailPage";
 import ResetPasswordPage from "../pages/auth/forgetPassword/ResetPasswordPage";

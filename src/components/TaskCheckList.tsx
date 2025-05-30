@@ -39,6 +39,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
     fieldName: string;
     row: number;
     iconId: string;
+    semester: number;
   } | null>(null);
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -251,6 +252,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
               fieldName,
               row: rowIndex,
               iconId: iconId,
+              semester: semester
             });
           }
         }
@@ -260,6 +262,8 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   if (isLoading && tasks.length === 0) {
     return <LoadingToFetchData />;
   }
+
+  if(filteredTasks.length === 0) return;
 
   return (
     <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-lg p-6 mb-8">
@@ -315,6 +319,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
                           fieldName: 'goal_content',
                           row: index,
                           iconId: iconId,
+                          semester: semester
                         });
                       }}
                       className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
@@ -366,6 +371,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
               fieldName={commentPopover.fieldName}
               row={commentPopover.row}
               onClose={() => setCommentPopover(null)}
+              semester = {commentPopover.semester}
           />
         </div>,
         document.body

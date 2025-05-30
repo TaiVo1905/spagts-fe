@@ -21,27 +21,19 @@ const StudentProfilePage: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [avatar, setAvatar] = useState("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [studentInfo, setStudentInfo] = useState<any>(user);
   const [loading, setLoading] = useState(true);
   const { id: studentId } = useParams<{ id: string }>();
-  console.log(studentId)
   const fetchStudentInfo = async () => {
-    try {
-      if (!studentId) return
-      
       setLoading(true);
-      const response = await userService.getStudent(Number(studentId));
-      const data = response.data;
-      setStudentInfo(data);
+      let response;
+      if (studentId != undefined) {
+        response = await userService.getStudent(Number(studentId));
+      }
+      const data = response?.data || user;
       if(data?.imageUrl) setAvatar(data?.imageUrl);
       setEmail(data.email);
       setName(data.name);
       setLoading(false);
-    } catch (err) {
-      toast.error('Failed to fetch student data');
-      console.error(err);
-    } finally {
-    }
   };
 
   useEffect(() => {

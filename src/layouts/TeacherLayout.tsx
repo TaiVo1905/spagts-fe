@@ -1,11 +1,13 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Avatar from '../components/Avatar';
-import menuItems from '../utils/menuItemsForTeacherRole';
+import menuItemsForTeacherRole from '../utils/menuItemsForTeacherRole';
+import menuItemsForStudentRole from '../utils/menuItemsForStudentRole';
 
 const TeacherLayout: React.FC = () => {
+    const location = useLocation();
     return (
         <>
             {/* Header có Avatar giáo viên */}
@@ -20,9 +22,9 @@ const TeacherLayout: React.FC = () => {
             />
 
             <div className="flex">
-                <Sidebar menuItems={menuItems} />
+                <Sidebar menuItems={location.pathname.toLowerCase().includes('teacher/dashboard') ? menuItemsForTeacherRole() : menuItemsForStudentRole()} />
 
-                <div className="flex flex-col flex-grow ml-3">
+                <div className="flex flex-col flex-grow w-[calc(100vw-300px)]">
                     <Outlet />
                 </div>
             </div>

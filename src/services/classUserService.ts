@@ -1,4 +1,3 @@
-// classUserService.ts
 import axiosClient from './axiosClient';
 
 export const classUserService = {

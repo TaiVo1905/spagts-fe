@@ -1,50 +1,52 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import moduleService, { Module } from "../services/moduleService";
+import { useAuth } from "../store/AuthContext";
+import { useLocation } from "react-router-dom";
 
-const teachers = [
-  {
-    backgroundImage:
-      "https://i.pinimg.com/736x/36/b0/23/36b023762ab3337d3eba0d0c253785f9.jpg",
-    avatar:
-      "https://i.pinimg.com/736x/83/40/99/8340999014aee07ce2b7029bc98eb463.jpg",
-    subject: "IT English",
-    name: "Nguyễn Thị Thùy Trang",
-    email: "TrangPNVenglish@gmail.com",
-  },
-];
+const TeacherCard = () => {
+  const { user } = useAuth();
+  const [modules, setModules] = useState<Module[]>([]);
+  const location = useLocation();
+  
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const response = await moduleService.getUserModules(user.id);
+        setModules(response.data);
+      } catch (error) {
+        console.error("Error fetching modules:", error);
+      }
+    };
+    
+    if (user?.id) {
+      fetchModules();
+    }
+  }, [user?.id]);
 
-const TeacherCard = ({ backgroundImage, avatar, subject, name, email }) => {
+  const module = modules.find((module) => module.id === Number(location.pathname[location.pathname.length - 1]));
+
   return (
-    <div
-      className="flex rounded-xl overflow-hidden shadow-md"
-      style={{ height: "261px" }}
-    >
+    <div className="flex rounded-xl overflow-hidden shadow-md h-[261px]">
       <div
-        className="bg-cover bg-center"
+        className="bg-cover bg-center w-[70%] h-full"
         style={{
-          backgroundImage: `url(${backgroundImage})`,
-          width: "70%",
-          height: "261px",
+          backgroundImage: `url("https://i.pinimg.com/736x/36/b0/23/36b023762ab3337d3eba0d0c253785f9.jpg")`,
         }}
-      ></div>
-      <div
-        className="bg-[#fef6f0] flex justify-center items-center p-4"
-  style={{ width: "30%", height: "261px", backgroundColor: "#FFF5EB" }}
-      >
+      />
+      <div className="bg-[#FFF5EB] flex justify-center items-center p-4 w-[30%] h-full">
         <img
-          src={avatar}
-          alt={name}
-  style={{ width: "76px", height: "76px" }} 
-className="rounded-full mr-4"
-
+          src={user?.imageUrl || "https://i.pinimg.com/736x/83/40/99/8340999014aee07ce2b7029bc98eb463.jpg"}
+          alt={user?.name}
+          className="rounded-full mr-4 w-[76px] h-[76px]"
         />
         <div>
-          <h2 className="text-lg font-semibold">{subject}</h2>
-          <p className="text-base text-gray-800">{name}</p>
+          <h2 className="text-lg font-semibold">{module?.name}</h2>
+          <p className="text-base text-gray-800">{user?.name}</p>
           <a
-            href={`mailto:${email}`}
+            href={`mailto:${user?.email}`}
             className="text-sm text-blue-500 underline"
           >
-            {email}
+            {user?.email}
           </a>
         </div>
       </div>
@@ -55,16 +57,7 @@ className="rounded-full mr-4"
 const TeacherList = () => {
   return (
     <div className="p-6">
-      {teachers.map((teacher, index) => (
-        <TeacherCard
-          key={index}
-          backgroundImage={teacher.backgroundImage}
-          avatar={teacher.avatar}
-          subject={teacher.subject}
-          name={teacher.name}
-          email={teacher.email}
-        />
-      ))}
+      <TeacherCard />
     </div>
   );
 };

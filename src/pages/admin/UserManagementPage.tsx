@@ -15,7 +15,7 @@ const UserManagementPage: React.FC = () => {
 
   const handleModalSuccess = () => {
     setModalOpen(false);
-    setReload(r => !r); // toggle reload
+    setReload(r => !r);
   };
 
   return (

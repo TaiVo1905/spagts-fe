@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import NotificationBadge from './NotificationBadge';
 import NotificationDropdown from './NotificationDropdown';
@@ -12,6 +12,7 @@ const NotificationBell: React.FC = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const { role } = useRole();
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
     unreadCount,
@@ -19,6 +20,19 @@ const NotificationBell: React.FC = () => {
     markAllAsRead,
     clearAll
   } = useNotifications(user?.id ? user.id.toString() : '');
+
+  useEffect(() => {
+          const handleClickOutside = (event: MouseEvent) => {
+              if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                  setIsOpen(false);
+              }
+          };
+  
+          document.addEventListener("mousedown", handleClickOutside);
+          return () => {
+              document.removeEventListener("mousedown", handleClickOutside);
+          };
+      }, [dropdownRef]);
 
   const handleNotificationClick = async (notification: any) => {
     const { commentableType, commentableId, fieldName, row, commentId, replyId } = notification.data;
@@ -55,11 +69,7 @@ const NotificationBell: React.FC = () => {
     let targetPath = '';
     if (commentableType === 'App\\Models\\SemesterGoal') {
       targetPath = `${basePath}/semester-goal`;
-    } else if (commentableType === 'App\\Models\\WeeklyGoal') {
-      targetPath = `${basePath}/learning-journal/semester${notification.data.semester}`;
-    } else if (commentableType === 'App\\Models\\InClassPlan') {
-      targetPath = `${basePath}/learning-journal/semester${notification.data.semester}`;
-    } else if (commentableType === 'App\\Models\\SelfStudyPlan') {
+    } else if (commentableType === 'App\\Models\\WeeklyGoal' || commentableType === 'App\\Models\\SelfStudyPlan' || commentableType === 'App\\Models\\InClassPlan') {
       targetPath = `${basePath}/learning-journal/semester${notification.data.semester}`;
     }
 
@@ -85,7 +95,7 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <NotificationBadge 
         count={unreadCount} 
         onClick={() => setIsOpen(!isOpen)}

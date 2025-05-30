@@ -6,11 +6,6 @@
   width: 70%;
 }
 
-.table-container::-webkit-scrollbar {
-  /* width: 6px;  */
-  /* background: transparent;  */
-}
-
 thead {
   height: 58px;
 }

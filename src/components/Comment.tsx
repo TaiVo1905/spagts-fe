@@ -108,6 +108,12 @@ const Comment: React.FC<CommentProps> = ({
     const atSymbolIndex = textBeforeCursor.lastIndexOf('@');
 
     if (atSymbolIndex >= 0) {
+      mentionedUsers.forEach((mentionedUser, index) => {
+          if(!textBeforeCursor.includes('@' + mentionedUser.name)) {
+            if(index = mentionedUsers.length) mentionedUsers.pop();
+            mentionedUsers.slice(index, index + 1);
+          }
+        })
       
       const textAfterAt = textBeforeCursor.substring(atSymbolIndex);
       const hasExistingMention = mentionedUsers.some(user => 
@@ -238,7 +244,7 @@ const Comment: React.FC<CommentProps> = ({
         {!isReplying ? (
           <button
             onClick={() => setIsReplying(true)}
-            className="text-xs text-blue-500 hover:text-blue-700"
+            className="text-xs text-(--primary-color) cursor-pointer"
           >
             Reply
           </button>
@@ -265,7 +271,7 @@ const Comment: React.FC<CommentProps> = ({
                   setIsReplying(false);
                   setMentionedUsers([]);
                 }}
-                className="px-3 py-1 text-xs bg-gray-200 rounded-md hover:bg-gray-300"
+                className="px-3 py-1 text-xs bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
               >
                 Cancel
               </button>
@@ -274,7 +280,7 @@ const Comment: React.FC<CommentProps> = ({
                 disabled={!replyContent.trim()}
                 className={`px-3 py-1 text-xs rounded-md ${
                   replyContent.trim()
-                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    ? 'bg-(--primary-color)/80 text-white hover:-(--primary-color) cursor-pointer'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
               >

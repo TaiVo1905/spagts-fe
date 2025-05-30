@@ -24,7 +24,7 @@ const Reply: React.FC<ReplyProps> = ({ reply, currentUser, onDeleteReply }) => {
 
   return (
     <div 
-      className="ml-8 mt-2 p-2 bg-white rounded-lg border border-gray-200"
+      className="mt-2 p-2 bg-white rounded-lg border border-gray-200"
       data-reply-id={reply.id}
     >
       <div className="flex justify-between items-start">

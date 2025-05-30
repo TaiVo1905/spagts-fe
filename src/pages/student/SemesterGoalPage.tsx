@@ -47,7 +47,7 @@ const StudentSemesterGoal: React.FC<{
 
         goals.forEach((goal, index) => {
             ['course', 'courseExpectation', 'teacherExpectation', 'selfExpectation', 'studentEvaluation', 'teacherEvaluation'].forEach((field) => {
-                // Updated path construction
+                
                 const path = `comments/App\\Models\\SemesterGoal/${goal.id}/${field}/${index}`;
                 const commentsRef = ref(database, path);
                 
@@ -68,7 +68,7 @@ const StudentSemesterGoal: React.FC<{
         return () => unsubscribeCallbacks.forEach(unsub => unsub());
     }, [goals, user]);
 
-    // Add effect to handle highlight params
+    
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const shouldHighlight = searchParams.get('highlight') === 'true';

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import userService from '../services/userService'; 
 
 interface CommentPopoverProps {
+  semester: number
   commentableType: string;
   commentableId: number;
   fieldName: string;
@@ -16,6 +17,7 @@ interface CommentPopoverProps {
 }
 
 const CommentPopover: React.FC<CommentPopoverProps> = ({
+  semester,
   commentableType,
   commentableId,
   fieldName,
@@ -145,7 +147,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
   };
 
-  const handleAddComment = async () => {
+  const handleAddComment = async (semester: number) => {
     if (!commentContent.trim() || !user) return;
 
     const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}`;
@@ -185,10 +187,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
               fieldName,
               row,
               commentId: commentRef.key,
-              semester: commentableType.includes('SemesterGoal') ? 1 : 
-                       commentableType.includes('WeeklyGoal') ? 1 :
-                       commentableType.includes('InClassPlan') ? 1 :
-                       commentableType.includes('SelfStudyPlan') ? 1 : 1
+              semester: semester
             }
           });
         }
@@ -201,7 +200,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
   };
 
-  const handleAddReply = async (commentId: string, content: string, mentionedUsers: any[]) => {
+  const handleAddReply = async (commentId: string, content: string, mentionedUsers: any[], semester: number) => {
     if (!content.trim() || !user) return;
 
     const path = `comments/${commentableType}/${commentableId}/${fieldName}/${row}/${commentId}/replies`;
@@ -244,10 +243,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
               row,
               commentId,
               replyId: replyRef.key,
-              semester: commentableType.includes('SemesterGoal') ? 1 : 
-                       commentableType.includes('WeeklyGoal') ? 1 :
-                       commentableType.includes('InClassPlan') ? 1 :
-                       commentableType.includes('SelfStudyPlan') ? 1 : 1
+              semester: semester
             }
           });
         }
@@ -315,7 +311,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
               key={comment.id}
               comment={comment}
               currentUser={user!}
-              onAddReply={(commentFirebaseId, content, mentionedUsers) => handleAddReply(commentFirebaseId, content, mentionedUsers)}
+              onAddReply={(commentFirebaseId, content, mentionedUsers, semster) => handleAddReply(commentFirebaseId, content, mentionedUsers, semester)}
               onDeleteComment={() => handleDeleteComment(comment.firebaseId)}
               onDeleteReply={(replyId) => handleDeleteReply(comment.firebaseId, replyId)}
               commentableType={commentableType}
@@ -346,7 +342,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
         )}
         <div className="flex justify-end mt-2">
           <button
-            onClick={handleAddComment}
+            onClick={handleAddComment(semester)}
             disabled={!commentContent.trim()}
             className={`px-3 py-1 text-sm rounded-md ${
               commentContent.trim()

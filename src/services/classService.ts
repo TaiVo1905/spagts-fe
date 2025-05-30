@@ -27,6 +27,16 @@ export const classService = {
     }
   },
 
+  getUserClasses: async (userId: number): Promise<ClassResponse> => {
+    try {
+      const response = await axiosClient.get(`/users/${userId}/classes`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      throw error;
+    }
+  },
+
   delete: async (id: number): Promise<void> => {
     try {
       

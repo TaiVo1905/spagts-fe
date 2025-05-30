@@ -123,7 +123,7 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 const StudentCardList: React.FC = () => {
-  const { moduleName } = useParams<{ moduleName: string }>();
+  const { moduleId } = useParams<{ moduleId: string }>();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -139,15 +139,16 @@ const StudentCardList: React.FC = () => {
           { data: { data: inClassData } },
           { data: { data: activityLogs } }
         ] = await Promise.all([
-          axios.get(`/api/v1/users?module=${moduleName}`, {
+          axios.get(`/api/v1/modules/${Number(moduleId)}/users`, {
             params: { roles: 'Student' },
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           }),
           axios.get('/api/v1/self-study-plans', {
+            params: { moduleId: Number(moduleId) },
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           }),
           axios.get('/api/v1/in-class-plan', {
-            params: { module: moduleName },
+            params: { moduleId: Number(moduleId) },
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           }),
           axios.get('/api/v1/activityLog', {
@@ -165,8 +166,8 @@ const StudentCardList: React.FC = () => {
         startOfWeek.setHours(0, 0, 0, 0);
 
         const processedStudents = studentsData.map((student: any) => {
-          const studentSelfStudies = selfStudyData.filter((ss: any) => (ss.student.id === student.id && ss.module.name === moduleName));
-          const studentInClasses = inClassData.filter((ic: any) => (ic.student.id === student.id && ic.module.name === moduleName));
+          const studentSelfStudies = selfStudyData.filter((ss: any) => (ss.student.id === student.id && ss.module.id === Number(moduleId)));
+          const studentInClasses = inClassData.filter((ic: any) => (ic.student.id === student.id && ic.module.id === Number(moduleId)));
           const allRecords = [...studentSelfStudies, ...studentInClasses];
           
           const studentActivityLogs = activityLogs.filter((log: any) => 
@@ -258,7 +259,7 @@ const StudentCardList: React.FC = () => {
     };
 
     fetchData();
-  }, [moduleName]);
+  }, [moduleId]);
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;

@@ -71,6 +71,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
     fieldName: string;
     row: number;
     iconId: string;
+    semester: number;
   } | null>(null);
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -226,6 +227,7 @@ useEffect(() => {
             fieldName,
             row: rowIndex,
             iconId: iconId,
+            semester: semester
           });
         }
       }
@@ -412,7 +414,8 @@ useEffect(() => {
                             commentableId: plan.id as number,
                             fieldName: field,
                             row: rowIndex,
-                            iconId: `comment-icon-${plan.id}-${field}-${rowIndex}`
+                            iconId: `comment-icon-${plan.id}-${field}-${rowIndex}`,
+                            semester: semester
                         });
           }}
           className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
@@ -623,6 +626,7 @@ useEffect(() => {
               fieldName={commentPopover.fieldName}
               row={commentPopover.row}
               onClose={() => setCommentPopover(null)}
+              semester = {commentPopover.semester}
           />
         </div>,
         document.body
