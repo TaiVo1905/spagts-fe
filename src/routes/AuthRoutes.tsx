@@ -8,6 +8,10 @@ import UnauthorizedPage from "../pages/auth/UnauthorizePage";
 
 const authRoutes: RouteObject[] = [
     {
+      path: "",
+      element: <LoginPage />,
+    },
+    {
       path: "/login",
       element: <LoginPage />,
     },

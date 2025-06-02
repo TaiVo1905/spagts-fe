@@ -6,12 +6,14 @@ import LoadingToFetchData from "../../components/LoadingToFetchData";
 import { FaEye, FaEyeSlash, FaCamera } from 'react-icons/fa';
 import { useRole } from "../../utils/useRole";
 import { useParams } from "react-router-dom";
+import axiosClient from "../../services/axiosClient";
 
 const StudentProfilePage: React.FC = () => {
   const { user } = useAuth();
   if (!user?.id) return;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [className, setClassName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,7 +24,13 @@ const StudentProfilePage: React.FC = () => {
   const [avatar, setAvatar] = useState("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
-  const { id: studentId } = useParams<{ id: string }>();
+  let { id: studentId } = useParams<{ id: string }>();
+  if(!studentId) studentId = String(user.id);
+  const { isStudent } = useRole();
+  const [editingField, setEditingField] = useState<'name' | 'email' | null>(null);
+  const [tempName, setTempName] = useState('');
+  const [tempEmail, setTempEmail] = useState('');
+
   const fetchStudentInfo = async () => {
       setLoading(true);
       let response;
@@ -35,10 +43,27 @@ const StudentProfilePage: React.FC = () => {
       setName(data.name);
       setLoading(false);
   };
-
+  const fetch = async() => {
+    try {
+      const response = await axiosClient.get(`/users/${studentId}/classes`);
+      const classes = response.data.data;
+      // Get the first class name if available
+      if (classes && classes.length > 0) {
+        setClassName(classes[0].name);
+      } else {
+        setClassName('No class assigned');
+      }
+    } catch (error) {
+      console.error('Error fetching class data:', error);
+      setClassName('Error loading class');
+    }
+  }
+  
   useEffect(() => {
     fetchStudentInfo();
-  }, [studentId]);
+    fetch();
+  }, [studentId])
+
 
   const handleSaveChanges = async () => {
     if (newPassword !== confirmPassword) {
@@ -65,37 +90,57 @@ const StudentProfilePage: React.FC = () => {
   };
 
   const handleUpdateField = async (field: 'name' | 'email', value: string) => {
-    try {
+    
+      if(value.trim() === '') {
+        toast.error(`Your ${field} is required!`);
+        return;
+      }
       const data = { [field]: value };
-      await userService.updateProfile(Number(studentId), data) && toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || `Failed to update ${field}`);
-    }
+      await userService.updateProfile(Number(studentId) || user.id, data) && toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
+    
   };
 
+  const handleDoubleClick = (field: 'name' | 'email') => {
+    if (!isStudent) return;
+    setEditingField(field);
+    if (field === 'name') {
+      setTempName(name);
+    } else {
+      setTempEmail(email);
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'name' | 'email') => {
     if (e.key === 'Enter') {
-      handleUpdateField(field, field === 'name' ? name : email);
+      handleUpdateField(field, field === 'name' ? tempName : tempEmail);
+      setEditingField(null);
+    } else if (e.key === 'Escape') {
+      setEditingField(null);
     }
   };
 
+  const handleBlur = (field: 'name' | 'email') => {
+    setEditingField(null);
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!studentId || !e.target.files || !e.target.files[0]) return;
+    if (!user.id || !e.target.files || !e.target.files[0]) return;
     setIsUploading(true);
     try {
       const file = e.target.files[0];
-      const response = await userService.uploadAvatar(Number(studentId), file);
+      console.log(123)
+      const response = await userService.uploadAvatar(Number(studentId || user.id), file);
       setAvatar(response.data.imageUrl);
       toast.success('Avatar updated successfully');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to update avatar');
     } finally {
       setIsUploading(false);
+      e.target.value = '';
     }
   };
 
-  if (loading || isUploading) {
+  if (loading) {
     return <LoadingToFetchData/>;
   }
 
@@ -104,13 +149,20 @@ const StudentProfilePage: React.FC = () => {
       <div className="w-full bg-white ml-[18px] mt-[21px] mr-[35px]">
         <h2 className="leading-[60px] text-[25px] font-bold border-b border-[#C5C1C1]">Personal Information</h2>
         <div className="flex items-center mb-5 mt-5">
-          <div className="relative w-[120px] h-[120px] mr-5">
+            <div className="relative w-[120px] h-[120px] mr-5">
+          {
+            isUploading ? 
+            <div className="flex items-center justify-center w-full flex-col">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-(--primary-color)"></div>
+            </div>
+            :
             <img
-              src={avatar}
-              alt="Profile"
-              className="w-[120px] h-[120px] rounded-full object-cover"
+            src={avatar}
+            alt="Profile"
+            className="w-[120px] h-[120px] rounded-full object-cover"
             />
-            {useRole().isStudent && <div 
+          }
+            {isStudent && <div 
               className="absolute inset-0 bg-black/50 rounded-full flex justify-center items-center  opacity-0 cursor-pointer hover:opacity-100 transition-opacity duration-300"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -126,7 +178,7 @@ const StudentProfilePage: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <p className="text-xl font-bold">{name}</p>
-            <p className="text-sm text-gray-600 my-1">PNV26B</p>
+            <p className="text-sm text-gray-600 my-1">{className}</p>
             <p className="text-sm text-gray-600 my-1">{email}</p>
           </div>
         </div>
@@ -136,20 +188,22 @@ const StudentProfilePage: React.FC = () => {
             <input
               type="text"
               id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={editingField === 'name' ? tempName : name}
+              onChange={(e) => setTempName(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, 'name')}
-              readOnly={!useRole().isStudent}
-              className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
+              onBlur={() => handleBlur('name')}
+              onDoubleClick={() => handleDoubleClick('name')}
+              readOnly={!isStudent || editingField !== 'name'}
+              className={`w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg ${editingField === 'name' ? 'bg-white' : 'bg-gray-50'}`}
             />
           </div>
           <div className="flex-1 mx-2.5">
             <label htmlFor="class" className="text-sm text-[#85877E] font-bold block mb-1.5">Class:</label>
             <input 
               type="text" 
-              placeholder="Class A" 
+              placeholder={className} 
               id="class"
-              readOnly={!useRole().isStudent}
+              readOnly={true}
               className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
             />
           </div>
@@ -158,15 +212,17 @@ const StudentProfilePage: React.FC = () => {
             <input
               type="text"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={editingField === 'email' ? tempEmail : email}
+              onChange={(e) => setTempEmail(e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, 'email')}
-              readOnly={!useRole().isStudent}
-              className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
+              onBlur={() => handleBlur('email')}
+              onDoubleClick={() => handleDoubleClick('email')}
+              readOnly={!isStudent || editingField !== 'email'}
+              className={`w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg ${editingField === 'email' ? 'bg-white' : 'bg-gray-50'}`}
             />
           </div>
         </div>
-        {useRole().isStudent && (
+        {isStudent && (
           <>
             <div className="font-bold text-2xl text-left leading-[50px] border-b border-[#C5C1C1]">Password</div>
             <div className="mt-[30px] w-full flex flex-row gap-[30px] items-center">

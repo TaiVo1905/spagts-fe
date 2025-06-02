@@ -9,6 +9,7 @@ interface LoginResponse {
 export const authService = {
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await axiosClient.post('/login', { email, password });
+    console.log(response)
     const { token, user } = response.data;
     if (!user || !token) {
       throw new Error('Invalid response from server');

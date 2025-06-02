@@ -4,10 +4,13 @@ import FloatingActionButton from '../../components/FloatingActionButton';
 import AddModuleModal from '../../components/AddModuleModal';
 import SetDeadlineModal from '../../components/SetDeadlineModal';
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 
 const DashboardPage = () => {
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
   const [isSetDeadlineModalOpen, setIsSetDeadlineModalOpen] = useState(false);
+  const { moduleId } = useParams<{ moduleId: string }>();
+  console.log(moduleId)
 
   const handleAddSubjectClick = () => {
     setIsAddSubjectModalOpen(true);
@@ -30,10 +33,7 @@ const DashboardPage = () => {
     console.log("Subject added successfully, refresh list.");
   };
 
-  const handleDeadlineSet = (datetime: string) => {
-    // TODO: Implement logic to save the deadline for the goal
-    console.log("Deadline set for goal:", datetime);
-  };
+
 
   return (
     <div className="flex-1 p-6">
@@ -54,7 +54,7 @@ const DashboardPage = () => {
       <SetDeadlineModal
         isOpen={isSetDeadlineModalOpen}
         onClose={handleSetDeadlineClose}
-        onDeadlineSet={handleDeadlineSet}
+        moduleId={Number(moduleId)}
       />
     </div>
   );

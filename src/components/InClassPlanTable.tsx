@@ -62,7 +62,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   const [showModal, setShowModal] = useState<boolean>(false);
   const [newPlan, setNewPlan] = useState<InClassPlan>(emptyPlanData);
   const [filteredPlans, setFilteredPlans] = useState<InClassPlan[]>([]);
-  const [tempValue, setTempValue] = useState<string>('');
+  const [tempValue, setTempValue] = useState<any>();
   const [commentPopover, setCommentPopover] = useState<{
     isOpen: boolean;
     position: { top: number; left: number };
@@ -75,10 +75,13 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   } | null>(null);
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
   const popoverRef = useRef<HTMLDivElement>(null);
+  const updatePositionRef = useRef<(() => void) | null>(null);
   const {isStudent} = useRole();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const studentId = Number(id) || (user?.id || 0);
+  const [isSaving, setIsSaving] = useState<{ row: number; field: keyof InClassPlan } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   useEffect(() => {
     if (!selectedStartDate || !selectedEndDate) {
@@ -107,7 +110,7 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
         const plansData = (await inClassPlanService.getAll(studentId, semester)).data;
         setPlans(plansData);
 
-        const modulesResponse = (await moduleService.getAll()).data;
+        const modulesResponse = (await moduleService.getUserModules(user.id)).data;
         setModules(modulesResponse || []);
 
         setNewPlan((prev) => ({ ...prev, student_id: user.id, semester: semester }));
@@ -123,53 +126,63 @@ const InClassPlanTable: React.FC<InClassGoalProps> = ({ semester, selectedStartD
   }, [user, semester]);
 
   useEffect(() => {
-  if (!commentPopover?.isOpen) return;
-  
-  function updatePosition() {
-    const icon = document.getElementById(commentPopover.iconId);
-    if (icon && popoverRef.current) {
-      const rect = icon.getBoundingClientRect();
-      const popover = popoverRef.current;
-      const popoverWidth = popover.offsetWidth;
-      const popoverHeight = popover.offsetHeight;
-      const { innerWidth, innerHeight } = window;
-      let left = rect.left;
-      let top = rect.bottom;
+    if (!commentPopover?.isOpen) return;
 
-      if (left + popoverWidth > innerWidth) {
-        left = innerWidth - popoverWidth - 8;
-      }
-      
-      if (top + popoverHeight > innerHeight) {
-        top = rect.top - popoverHeight;
-      }
-      
-      setCommentPopover(prev => prev && ({
-        ...prev,
-        position: { top, left }
-      }));
-    }
-  }
-  
-  updatePosition();
-  window.addEventListener('scroll', updatePosition, true);
-  window.addEventListener('resize', updatePosition);
-  
-  return () => {
-    window.removeEventListener('scroll', updatePosition, true);
-    window.removeEventListener('resize', updatePosition);
-  };
-}, [commentPopover]);
-useEffect(() => {
-      if (!commentPopover?.isOpen) return;
-      function handleClick(e: MouseEvent) {
-        if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-          setCommentPopover(null);
+    updatePositionRef.current = () => {
+      const icon = document.getElementById(commentPopover.iconId);
+      if (icon && popoverRef.current) {
+        const rect = icon.getBoundingClientRect();
+        const popover = popoverRef.current;
+        const popoverWidth = popover.offsetWidth;
+        const popoverHeight = popover.offsetHeight;
+        const { innerWidth, innerHeight } = window;
+        let left = rect.left;
+        let top = rect.bottom;
+
+        if (left + popoverWidth > innerWidth) {
+          left = innerWidth - popoverWidth - 8;
+        }
+        
+        if (top + popoverHeight > innerHeight) {
+          top = rect.top - popoverHeight;
+        }
+
+        // Only update if position actually changed
+        if (left !== commentPopover.position.left || top !== commentPopover.position.top) {
+          setCommentPopover(prev => prev && ({
+            ...prev,
+            position: { top, left }
+          }));
         }
       }
-      document.addEventListener('mousedown', handleClick);
-      return () => document.removeEventListener('mousedown', handleClick);
-    }, [commentPopover]);
+    };
+
+    // Initial position update
+    updatePositionRef.current();
+
+    // Add event listeners
+    window.addEventListener('scroll', updatePositionRef.current, true);
+    window.addEventListener('resize', updatePositionRef.current);
+
+    return () => {
+      window.removeEventListener('scroll', updatePositionRef.current!, true);
+      window.removeEventListener('resize', updatePositionRef.current!);
+    };
+  }, [commentPopover?.isOpen, commentPopover?.iconId]); // Only depend on these values
+
+  // Add click outside handler
+  useEffect(() => {
+    if (!commentPopover?.isOpen) return;
+    
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCommentPopover(null);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [commentPopover?.isOpen]);
 
   useEffect(() => {
     if (!user) return;
@@ -243,26 +256,32 @@ useEffect(() => {
     if (!editingCell || !user) return;
 
     const updatedPlan = { 
-      ...plans[rowIndex], 
+      ...filteredPlans[rowIndex], 
       [editingCell.field]: editingCell.field === 'self_assessment' 
         ? Number(tempValue) 
         : editingCell.field === 'problem_solved'
-        ? tempValue === 'true'
-        : tempValue
+        ? Boolean(tempValue) : tempValue
     };
 
     try {
       if (updatedPlan.id) {
-        await inClassPlanService.update(updatedPlan.id, { [editingCell.field]: updatedPlan[editingCell.field] });
-        const updatedPlans = plans.map((plan, i) => i === rowIndex ? updatedPlan : plan);
-        setPlans(updatedPlans);
+        setIsSaving({ row: rowIndex, field: editingCell.field });
+        const updateData = {
+          id: updatedPlan.id,
+          [editingCell.field]: updatedPlan[editingCell.field]
+        };
+        await inClassPlanService.update(updatedPlan.id, updateData as unknown as InClassPlan);
+        const updatedPlans = filteredPlans.map((plan, i) => i === rowIndex ? updatedPlan : plan);
+        setFilteredPlans(updatedPlans);
         toast.success('Plan updated successfully!');
       }
     } catch (err: any) {
       console.error('Update plan error:', err);
       toast.error('Failed to update plan. Please try again.');
+    } finally {
+      setIsSaving(null);
+      setEditingCell(null);
     }
-    setEditingCell(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number) => {
@@ -279,6 +298,7 @@ useEffect(() => {
     if (!plan.id || !user) return;
 
     if (window.confirm('Are you sure you want to delete this plan?')) {
+      setIsDeleting(rowIndex);
       try {
         await inClassPlanService.delete(plan.id);
         setPlans(plans.filter((_, i) => i !== rowIndex));
@@ -286,6 +306,8 @@ useEffect(() => {
       } catch (error) {
         console.error('Delete plan error:', error);
         toast.error('Failed to delete plan. Please try again.');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
@@ -348,11 +370,12 @@ useEffect(() => {
 
   const renderCell = (rowIndex: number, field: keyof InClassPlan, value: string | number | boolean) => {
     const isEditing = editingCell?.row === rowIndex && editingCell?.field === field;
+    const isSavingCell = isSaving?.row === rowIndex && isSaving?.field === field;
     const plan = filteredPlans[rowIndex];
     if (!plan.id) return null;
     const commentCount = commentsCount[`${plan.id}-${field}-${rowIndex}`] || 0;
     const displayValue = field === 'self_assessment' 
-      ? `${value}/10` 
+      ? value ? `${value}/10` : '-' 
       : field === 'problem_solved' 
       ? value ? 'Yes' : 'No'
       : value;
@@ -363,13 +386,15 @@ useEffect(() => {
           <select
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
-            onBlur={() => saveChanges(rowIndex)}
+            onBlur={() => setEditingCell(null)}
             onKeyDown={(e) => handleKeyDown(e, rowIndex)}
-            className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            disabled={isSavingCell}
+            className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
             autoFocus
+            onFocus={() => setTempValue(1)}
           >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
+            <option value={1}>Yes</option>
+            <option value={0}>No</option>
           </select>
         );
       }
@@ -381,7 +406,8 @@ useEffect(() => {
           onChange={(e) => setTempValue(e.target.value)}
           onBlur={() => saveChanges(rowIndex)}
           onKeyDown={(e) => handleKeyDown(e, rowIndex)}
-          className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          disabled={isSavingCell}
+          className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
           autoFocus
           min={field === 'self_assessment' ? 0 : undefined}
           max={field === 'self_assessment' ? 10 : undefined}
@@ -397,7 +423,14 @@ useEffect(() => {
           data-field={field}
           data-row={rowIndex}
         >
-          {displayValue || '-'}
+          {isSavingCell ? (
+            <div className="flex items-center justify-center w-full">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+              Saving...
+            </div>
+          ) : (
+            displayValue || '-'
+          )}
         </div>
 
         <button
@@ -485,9 +518,17 @@ useEffect(() => {
                   {isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
                     <button
                       onClick={() => handleDelete(rowIndex)}
-                      className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      disabled={isDeleting === rowIndex}
+                      className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Delete
+                      {isDeleting === rowIndex ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
                     </button>
                   </div>}
                 </div>

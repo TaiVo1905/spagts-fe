@@ -3,6 +3,9 @@ import moduleService from '../services/moduleService';
 import {classService} from '../services/classService';
 import { Class } from '../interface/Interface';
 import { useAuth } from '../store/AuthContext';
+import axiosClient from '../services/axiosClient';
+import { database } from '../services/firebaseService';
+import { ref, set } from 'firebase/database';
 
 interface Props {
   isOpen: boolean;
@@ -61,6 +64,22 @@ const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded }) =>
 
       if (selectedClassIds.length > 0 && newModule.id) {
         await moduleService.addClassesToModule(newModule.id, selectedClassIds);
+        const teacherResponse = await axiosClient.get(`/modules/${newModule.id}/users`, {
+                params: { roles: 'Teacher' }
+              });
+        
+              const teachers = teacherResponse.data?.data || [];
+              
+              // Add teachers to module_teachers reference
+              console.log(teachers)
+              await Promise.allSettled(
+                teachers.map(async (teacher: any) => {
+                  if (teacher?.id) {
+                    const moduleTeacherRef = ref(database, `module_teachers/${newModule.id}/${teacher.id}`);
+                    await set(moduleTeacherRef, true);
+                  }
+                })
+              );
       }
 
       setSubjectName('');

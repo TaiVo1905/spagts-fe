@@ -62,7 +62,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {new Date(notification.createdAt).toLocaleString()}
+                {new Date(notification.createdAt || notification.created_at).toLocaleString()}
               </p>
             </div>
           ))

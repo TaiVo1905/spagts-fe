@@ -16,7 +16,6 @@ interface Event {
   end: Date | string;
   allDay: boolean;
   color?: string;
-  user_id?: number;
 }
 
 interface TimetableContextType {

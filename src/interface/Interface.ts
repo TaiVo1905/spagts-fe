@@ -32,18 +32,22 @@ export interface Class {
 
 export interface Notification {
   id: string;
-  type: 'mention' | 'reply' | 'reaction';
+  type: 'mention' | 'reply' | 'reaction' | 'deadline';
   message: string;
+  title: string;
   data: {
-    commentableType: string;
-    commentableId: number;
-    fieldName: string;
-    row: number;
+    commentableType?: string;
+    commentableId?: number;
+    fieldName?: string;
+    row?: number;
     commentId?: string;
     replyId?: string;
+    record_id?: number;
+    table_name?: string;
+    due_date?: string;
   };
   read: boolean;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface NotificationBadgeProps {

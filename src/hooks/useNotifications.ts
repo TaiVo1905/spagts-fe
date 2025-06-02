@@ -33,6 +33,17 @@ export const useNotifications = (userId: string) => {
       setNotifications(notificationsArray);
       setUnreadCount(notificationsArray.filter(n => !n.read).length);
       setIsLoading(false);
+
+      // // Show toast for unread deadline notifications
+      // notificationsArray
+      //   .filter(n => !n.read && n.type === 'deadline')
+      //   .forEach(notification => {
+      //     toast(notification.message, {
+      //       duration: 5000,
+      //       position: 'top-right',
+      //       icon: '⚠️'
+      //     });
+      //   });
     });
 
     return () => {

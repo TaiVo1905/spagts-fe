@@ -4,8 +4,12 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Avatar from '../components/Avatar';
 import menuItems from '../utils/menuItemsForAdminRole';
+import { usePlanSync } from '../hooks/usePlanSync';
+// import { useDeadlineNotifications } from '../hooks/useDeadlineNotifications';
 
 const AdminLayout: React.FC = () => {
+    // useDeadlineNotifications();
+    // usePlanSync();
     return (
         <>
             <Header

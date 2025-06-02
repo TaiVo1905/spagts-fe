@@ -192,7 +192,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                   <button
                     type="button"
                     onClick={() => event?.id && onDelete(event.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition cursor-pointer"
                   >
                     Delete
                   </button>
@@ -201,13 +201,13 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                   <button
                     type="button"
                     onClick={onClose}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition cursor-pointer"
                   >
                     {event?.id ? 'Update' : 'Create'}
                   </button>

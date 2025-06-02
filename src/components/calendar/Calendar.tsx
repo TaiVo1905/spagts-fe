@@ -20,10 +20,12 @@ export const Calendar = () => {
     currentEvent,
   } = useTimetable();
   
+  const {isStudent} = useRole();
   const calendarRef = useRef<FullCalendar>(null);
   const modalRef = useRef<HTMLDialogElement>(null);
 
   const handleDateClick = (arg: any) => {
+    if(!isStudent) return;
     // Convert to local timezone to avoid date shifting
     const localDate = new Date(arg.date);
     setCurrentEvent({
@@ -102,14 +104,14 @@ export const Calendar = () => {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
-          editable={useRole().isStudent}
-          selectable={useRole().isStudent}
-          selectMirror={useRole().isStudent}
+          editable={isStudent}
+          selectable={isStudent}
+          selectMirror={isStudent}
           dayMaxEvents={true}
           weekends={true}
           events={formatEvents(events)}
-          dateClick={useRole().isStudent ? handleDateClick : null}
-          eventClick={useRole().isStudent ? handleEventClick: null}
+          dateClick={handleDateClick}
+          eventClick={ handleEventClick }
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           height="auto"

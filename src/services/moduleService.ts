@@ -15,7 +15,7 @@ const moduleService = {
         return response.data;
     },
     getUserModules: async (userId: number) => {
-        const response = await axiosClient.get(`/userModules/?user_id=${userId}`);
+        const response = await axiosClient.get(`/userModules/?user_id=${userId}&perPage=100`);
         return response.data;
     },
     add: async (data: Module) => {

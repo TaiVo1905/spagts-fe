@@ -2,7 +2,7 @@
 import axiosClient from './axiosClient';
 
 export interface InClassPlan {
-  id: number;
+  id?: number;
   date: string;
   lesson_learned: string;
   self_assessment: number;

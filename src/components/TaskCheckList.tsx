@@ -43,6 +43,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   } | null>(null);
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
   const popoverRef = useRef<HTMLDivElement>(null);
+  const updatePositionRef = useRef<(() => void) | null>(null);
 
   const userId = Number(studentId) || user?.id || 0;
 
@@ -105,6 +106,7 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
 
     try {
      await WeeklyGoalService.update(task.id!, { is_completed: newStatus });
+     toast.success('Task updated successfully');
     } catch (error) {
       console.error('Failed to update task:', error);
       task.is_completed = !newStatus;
@@ -119,7 +121,14 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
 
   const saveEdit = async (index: number) => {
     if (editContent.trim() === '') {
-      toast.error('Content cannot be empty');
+      if(filteredTasks.length === 1) {
+        toast.error('You need at least one task!');
+        return;
+      }
+      await WeeklyGoalService.delete(filteredTasks[index].id!);
+      toast.success('Delete task successfully!');
+      setFilteredTasks(filteredTasks.filter((_, i) => i !== index));
+      setEditIndex(null);
       return;
     }
     const updatedTasks = [...tasks];
@@ -148,9 +157,9 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   };
 
   const addTask = async () => {
-    if (!newTask.trim()) return;
+    // if (!newTask.trim()) return;
 
-    if (!selectedStartDate || !selectedEndDate) {
+    if (!selectedStartDate || !selectedEndDate || !newTask.trim()) {
       toast.error('Please enter a task');
       return;
     }
@@ -182,8 +191,9 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
   
   useEffect(() => {
     if (!commentPopover?.isOpen) return;
-    function updatePosition() {
-      const icon = document.getElementById(commentPopover!.iconId);
+
+    updatePositionRef.current = () => {
+      const icon = document.getElementById(commentPopover.iconId);
       if (icon && popoverRef.current) {
         const rect = icon.getBoundingClientRect();
         const popover = popoverRef.current;
@@ -200,20 +210,29 @@ const TaskCheckList: React.FC<TaskCheckListProps> = ({
         if (top + popoverHeight > innerHeight) {
           top = rect.top - popoverHeight;
         }
-        setCommentPopover(prev => prev && ({
-          ...prev,
-          position: { top, left }
-        }));
+
+        // Only update if position actually changed
+        if (left !== commentPopover.position.left || top !== commentPopover.position.top) {
+          setCommentPopover(prev => prev && ({
+            ...prev,
+            position: { top, left }
+          }));
+        }
       }
-    }
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
     };
-  }, [commentPopover]);
+
+    // Initial position update
+    updatePositionRef.current();
+
+    // Add event listeners
+    window.addEventListener('scroll', updatePositionRef.current, true);
+    window.addEventListener('resize', updatePositionRef.current);
+
+    return () => {
+      window.removeEventListener('scroll', updatePositionRef.current!, true);
+      window.removeEventListener('resize', updatePositionRef.current!);
+    };
+  }, [commentPopover?.isOpen, commentPopover?.iconId]); // Only depend on these values
 
   
   useEffect(() => {

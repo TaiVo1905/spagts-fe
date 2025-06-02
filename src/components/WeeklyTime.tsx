@@ -123,6 +123,7 @@ const WeeklyTime: React.FC<DayGoalProps> = ({
         start_date: newStartDate,
         end_date: newEndDate,
         goal_content: newGoalContent.trim(),
+        is_completed: false,
         student_id: userId,
         semester: semester
       };

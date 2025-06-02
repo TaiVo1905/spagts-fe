@@ -5,9 +5,13 @@ import Sidebar from '../components/Sidebar';
 import Avatar from '../components/Avatar';
 import menuItemsForTeacherRole from '../utils/menuItemsForTeacherRole';
 import menuItemsForStudentRole from '../utils/menuItemsForStudentRole';
+import { useDeadlineNotifications } from '../hooks/useDeadlineNotifications';
+import { usePlanSync } from '../hooks/usePlanSync';
 
 const TeacherLayout: React.FC = () => {
     const location = useLocation();
+    useDeadlineNotifications();
+    usePlanSync();
     return (
         <>
             {/* Header có Avatar giáo viên */}

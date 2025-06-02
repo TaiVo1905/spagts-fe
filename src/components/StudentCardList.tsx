@@ -197,8 +197,17 @@ const StudentCardList: React.FC = () => {
               
               
               const isEmptyRecord = type === 'self_study_plan' 
-                ? !record.lesson_learned 
-                : !record.lesson_learned;
+                ? !record.time_allocation ||
+                  !record.learning_resources ||
+                  !record.learning_activities ||
+                  !record.concentration ||
+                  !record.plan_reflection ||
+                  !record.evaluation ||
+                  !record.reinforcing_techniques
+                : !record.self_assessment ||
+                  !record.difficulties ||
+                  !record.plan_to_improve ||
+                  !record.problem_solved
               
               
               if (!hasUpdateBeforeDue) {

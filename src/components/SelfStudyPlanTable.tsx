@@ -9,6 +9,7 @@ import CommentPopover from './CommentPopover';
 import { ref, onValue, off, push } from 'firebase/database';
 import { database } from '../services/firebaseService';
 import ReactDOM from 'react-dom';
+import moduleService from '../services/moduleService';
 
 interface Module {
   id: number;
@@ -87,7 +88,11 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
   } | null>(null);
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
   const popoverRef = useRef<HTMLDivElement>(null);
+  const updatePositionRef = useRef<(() => void) | null>(null);
   const userId = Number(studentId) || (user?.id || 0);
+  const { isStudent } = useRole();
+  const [isSaving, setIsSaving] = useState<{ row: number; field: keyof SelfStudyPlan } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   useEffect(() => {
     if (!selectedStartDate || !selectedEndDate) {
@@ -116,8 +121,8 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
         const response = await selfStudyPlanService.getAll(userId, semester);
         setPlans(response.data);
 
-        const modulesResponse = await axiosClient.get('/modules');
-        setModules(modulesResponse.data.data || []);
+        const modulesResponse = await moduleService.getUserModules(user.id);
+        setModules(modulesResponse.data || []);
 
         setNewPlan((prev) => ({ ...prev, student_id: userId, semester: semester}));
         setError(null);
@@ -162,10 +167,10 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
     return () => unsubscribeCallbacks.forEach(unsub => unsub());
   }, [filteredPlans, user]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!commentPopover?.isOpen) return;
-    
-    function updatePosition() {
+
+    updatePositionRef.current = () => {
       const icon = document.getElementById(commentPopover.iconId);
       if (icon && popoverRef.current) {
         const rect = icon.getBoundingClientRect();
@@ -175,7 +180,7 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
         const { innerWidth, innerHeight } = window;
         let left = rect.left;
         let top = rect.bottom;
-  
+
         if (left + popoverWidth > innerWidth) {
           left = innerWidth - popoverWidth - 8;
         }
@@ -183,66 +188,69 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
         if (top + popoverHeight > innerHeight) {
           top = rect.top - popoverHeight;
         }
-        
-        setCommentPopover(prev => prev && ({
-          ...prev,
-          position: { top, left }
-        }));
+
+        if (left !== commentPopover.position.left || top !== commentPopover.position.top) {
+          setCommentPopover(prev => prev && ({
+            ...prev,
+            position: { top, left }
+          }));
+        }
+      }
+    };
+
+    updatePositionRef.current();
+
+    window.addEventListener('scroll', updatePositionRef.current, true);
+    window.addEventListener('resize', updatePositionRef.current);
+
+    return () => {
+      window.removeEventListener('scroll', updatePositionRef.current!, true);
+      window.removeEventListener('resize', updatePositionRef.current!);
+    };
+  }, [commentPopover?.isOpen, commentPopover?.iconId]);
+
+  useEffect(() => {
+    if (!commentPopover?.isOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCommentPopover(null);
       }
     }
-    
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [commentPopover]);
-  useEffect(() => {
-        if (!commentPopover?.isOpen) return;
-        function handleClick(e: MouseEvent) {
-          if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-            setCommentPopover(null);
-          }
-        }
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-      }, [commentPopover]);
 
-  
-    useEffect(() => {
-      const searchParams = new URLSearchParams(location.search);
-      const shouldHighlight = searchParams.get('highlight') === 'true';
-      const fieldName = searchParams.get('field');
-      const row = searchParams.get('row');
-  
-      if (shouldHighlight && fieldName && row !== null) {
-        const rowIndex = parseInt(row);
-        
-        const planToHighlight = filteredPlans[rowIndex];
-  
-        if (planToHighlight?.id) {
-          const iconId = `comment-icon-${planToHighlight.id}-${fieldName}-${rowIndex}`;
-          const icon = document.getElementById(iconId);
-  
-          if (icon) {
-            const rect = icon.getBoundingClientRect();
-            setCommentPopover({
-              isOpen: true,
-              position: { top: rect.bottom, left: rect.left },
-              commentableType: 'App\\Models\\SelfStudyPlan',
-              commentableId: planToHighlight.id as number,
-              fieldName,
-              row: rowIndex,
-              iconId: iconId,
-              semester: semester
-            });
-          }
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shouldHighlight = searchParams.get('highlight') === 'true';
+    const fieldName = searchParams.get('field');
+    const row = searchParams.get('row');
+
+    if (shouldHighlight && fieldName && row !== null) {
+      const rowIndex = parseInt(row);
+      
+      const planToHighlight = filteredPlans[rowIndex];
+
+      if (planToHighlight?.id) {
+        const iconId = `comment-icon-${planToHighlight.id}-${fieldName}-${rowIndex}`;
+        const icon = document.getElementById(iconId);
+
+        if (icon) {
+          const rect = icon.getBoundingClientRect();
+          setCommentPopover({
+            isOpen: true,
+            position: { top: rect.bottom, left: rect.left },
+            commentableType: 'App\\Models\\SelfStudyPlan',
+            commentableId: planToHighlight.id as number,
+            fieldName,
+            row: rowIndex,
+            iconId: iconId,
+            semester: semester
+          });
         }
       }
-    }, [location.search, filteredPlans]);
+    }
+  }, [location.search, filteredPlans]);
 
   const handleDoubleClick = (rowIndex: number, field: keyof SelfStudyPlan, value: string) => {
     setEditingCell({ row: rowIndex, field });
@@ -253,7 +261,7 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
     if (!editingCell || !user) return;
 
     const updatedPlan = { 
-      ...plans[rowIndex], 
+      ...filteredPlans[rowIndex], 
       [editingCell.field]: editingCell.field === 'time_allocation' || editingCell.field === 'concentration' 
         ? Number(tempValue) 
         : tempValue 
@@ -261,19 +269,22 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
 
     try {
       if (updatedPlan.id) {
+        setIsSaving({ row: rowIndex, field: editingCell.field });
         const updateData: Partial<SelfStudyPlan> = {
           [editingCell.field]: updatedPlan[editingCell.field]
         };
         await selfStudyPlanService.update(updatedPlan.id, updateData as SelfStudyPlan);
-        const updatedPlans = plans.map((plan, i) => i === rowIndex ? updatedPlan : plan);
-        setPlans(updatedPlans);
+        const updatedPlans = filteredPlans.map((plan, i) => i === rowIndex ? updatedPlan : plan);
+        setFilteredPlans(updatedPlans);
         toast.success('Plan updated successfully!');
       }
     } catch (err: any) {
       console.error('Update plan error:', err);
       toast.error('Failed to update plan. Please try again.');
+    } finally {
+      setIsSaving(null);
+      setEditingCell(null);
     }
-    setEditingCell(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number) => {
@@ -286,17 +297,20 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
   };
 
   const handleDelete = async (rowIndex: number) => {
-    const plan = plans[rowIndex];
+    const plan = filteredPlans[rowIndex];
     if (!plan.id || !user) return;
 
     if (window.confirm('Are you sure you want to delete this plan?')) {
+      setIsDeleting(rowIndex);
       try {
         await selfStudyPlanService.delete(plan.id);
-        setPlans(plans.filter((_, i) => i !== rowIndex));
+        setFilteredPlans(filteredPlans.filter((_, i) => i !== rowIndex));
         toast.success('Plan deleted successfully!');
       } catch (error) {
         console.error('Delete plan error:', error);
         toast.error('Failed to delete plan. Please try again.');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
@@ -338,7 +352,7 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
       setLoading(true);
       const planData = { ...newPlan, student_id: userId, semester: semester };
       const response = await selfStudyPlanService.add(userId, planData);
-      setPlans((prev) => [...prev, response.data]); 
+      setFilteredPlans((prev) => [...prev, response.data]); 
       setShowModal(false);
       setNewPlan({ ...emptyPlanData, student_id: userId, semester: semester });
       toast.success('Plan added successfully!');
@@ -357,24 +371,26 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
 
   const renderCell = (rowIndex: number, field: keyof SelfStudyPlan, value: string | number) => {
     const isEditing = editingCell?.row === rowIndex && editingCell?.field === field;
+    const isSavingCell = isSaving?.row === rowIndex && isSaving?.field === field;
     const plan = filteredPlans[rowIndex];
     if (!plan.id) return null;
     const commentCount = commentsCount[`${plan.id}-${field}-${rowIndex}`] || 0;
     const displayValue = field === 'time_allocation' 
       ? `${value} mins` 
-      : field === 'concentration' 
+      : field === 'concentration' && value 
       ? `${value}/10` 
       : value;
 
-    if (useRole().isStudent && isEditing) {
+    if (isStudent && isEditing) {
       return (
         <input
           type={field === 'date' ? 'date' : field === 'time_allocation' || field === 'concentration' ? 'number' : 'text'}
           value={tempValue}
           onChange={(e) => setTempValue(e.target.value)}
-          onBlur={() => saveChanges(rowIndex)}
+          onBlur={() => setEditingCell(null)}
           onKeyDown={(e) => handleKeyDown(e, rowIndex)}
-          className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          disabled={isSavingCell}
+          className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
           autoFocus
           min={field === 'concentration' ? 0 : field === 'time_allocation' ? 1 : undefined}
           max={field === 'concentration' ? 10 : undefined}
@@ -390,7 +406,14 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
           data-field={field}
           data-row={rowIndex}
         >
-          {displayValue || '-'}
+          {isSavingCell ? (
+            <div className="flex items-center justify-center w-full">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+              Saving...
+            </div>
+          ) : (
+            displayValue || '-'
+          )}
         </div>
         <button
           id={`comment-icon-${plan.id}-${field}-${rowIndex}`}
@@ -430,7 +453,7 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
     <>
       <div className='relative'>
         <h3 className="text-[28px] font-semibold text-[#21BAEA] py-3 pl-2">Self-study plan:</h3>
-        {useRole().isStudent && <button
+        {isStudent && <button
           onClick={handleAdd}
           className="absolute bottom-4 right-4 flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] z-40"
         >
@@ -447,14 +470,14 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
                   {label}
                 </div>
               ))}
-              {useRole().isStudent && <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
+              {isStudent && <div className="min-w-[60px] py-3 px-4 flex justify-center items-center whitespace-nowrap">
                 Actions
               </div>}
             </div>
             
             {filteredPlans.length === 0 ? (
               <div className="py-10 text-start pl-10 text-gray-500">
-                No plans yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "'Add new plan'"}</span> {useRole().isStudent && "to start!"}             </div>
+                No plans yet. {isStudent && "Click"} <span className="text-[#21BAEA]">{isStudent && "'Add new plan'"}</span> {isStudent && "to start!"}             </div>
             ) : (
               filteredPlans.map((plan, rowIndex) => (
                 <div key={rowIndex} className={`flex text-sm text-[#1B1B1F] border-b border-gray-100 hover:bg-gray-50 transition-colors ${rowIndex % 2 === 0 ? 'bg-[#F7FBFC]' : 'bg-white'}`}>
@@ -477,12 +500,20 @@ const SelfStudyPlanTable: React.FC<StudentGoalProps> = ({ semester, selectedStar
                       </div>
                     );
                   })}
-                  {useRole().isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
+                  {isStudent && <div className="min-w-[60px] py-2 px-2 flex justify-center items-center">
                     <button
                       onClick={() => handleDelete(rowIndex)}
-                      className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      disabled={isDeleting === rowIndex}
+                      className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Delete
+                      {isDeleting === rowIndex ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
                     </button>
                   </div>}
                 </div>

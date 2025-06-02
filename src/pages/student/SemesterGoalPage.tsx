@@ -30,6 +30,8 @@ const StudentSemesterGoal: React.FC<{
     const location = useLocation();
     const [editingCell, setEditingCell] = useState<{ index: number; field: keyof SemesterGoal } | null>(null);
     const [tempValue, setTempValue] = useState<string>('');
+    const [isSaving, setIsSaving] = useState<{ index: number; field: keyof SemesterGoal } | null>(null);
+    const [isDeleting, setIsDeleting] = useState<number | null>(null);
     const [commentPopover, setCommentPopover] = useState<{
         isOpen: boolean;
         position: { top: number; left: number };
@@ -37,8 +39,10 @@ const StudentSemesterGoal: React.FC<{
         commentableId: number;
         fieldName: string;
         row: number;
+        semester: number;
     } | null>(null);
     const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
+    const { isStudent } = useRole();
 
     useEffect(() => {
         if (!user) return;
@@ -90,6 +94,7 @@ const StudentSemesterGoal: React.FC<{
                         commentableId: goal.id as number,
                         fieldName,
                         row: rowIndex,
+                        semester: semester
                     });
                 }
             }
@@ -97,7 +102,7 @@ const StudentSemesterGoal: React.FC<{
     }, [location.search, goals]);
 
     const handleDoubleClick = (index: number, field: keyof SemesterGoal, value: string) => {
-        if (!useRole().isStudent) return;
+        if (!isStudent) return;
         setEditingCell({ index, field });
         setTempValue(value);
     };
@@ -110,6 +115,7 @@ const StudentSemesterGoal: React.FC<{
         if (!goal?.id || goal.semester === undefined) return;
 
         if (tempValue !== (goal[field] || '')) {
+            setIsSaving({ index, field });
             try {
                 const updateData = {
                     ...goal,
@@ -122,6 +128,8 @@ const StudentSemesterGoal: React.FC<{
             } catch (error) {
                 console.error('Update goal error:', error);
                 toast.error('Failed to update goal. Please try again.');
+            } finally {
+                setIsSaving(null);
             }
         }
         setEditingCell(null);
@@ -141,6 +149,7 @@ const StudentSemesterGoal: React.FC<{
         if (!goal.id || !user) return;
 
         if (window.confirm('Are you sure you want to delete this goal?')) {
+            setIsDeleting(index);
             try {
                 await semesterGoalService.delete(goal.id);
                 setGoals(goals.filter((_, i) => i !== index));
@@ -148,19 +157,22 @@ const StudentSemesterGoal: React.FC<{
             } catch (error) {
                 console.error('Delete goal error:', error);
                 toast.error('Failed to delete goal. Please try again.');
+            } finally {
+                setIsDeleting(null);
             }
         }
     };
 
     const renderCell = (index: number, field: keyof SemesterGoal, value: string | number) => {
         const isEditing = editingCell?.index === index && editingCell?.field === field;
+        const isSavingCell = isSaving?.index === index && isSaving?.field === field;
         const goal = goals[index];
         if (!goal?.id || goal.semester === undefined) return null;
         
         const commentCount = commentsCount[`${goal.id}-${field}-${index}`] || 0;
         const iconId = `comment-icon-${goal.id}-${field}-${index}`;
 
-        if (isEditing && useRole().isStudent) {
+        if (isEditing && isStudent) {
             return field === 'course' ? (
                 <input
                     type="text"
@@ -168,7 +180,8 @@ const StudentSemesterGoal: React.FC<{
                     onChange={(e) => setTempValue(e.target.value)}
                     onBlur={saveChanges}
                     onKeyDown={handleKeyDown}
-                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    disabled={isSavingCell}
+                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
                     autoFocus
                 />
             ) : (
@@ -177,7 +190,8 @@ const StudentSemesterGoal: React.FC<{
                     onChange={(e) => setTempValue(e.target.value)}
                     onBlur={saveChanges}
                     onKeyDown={handleKeyDown}
-                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    disabled={isSavingCell}
+                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
                     rows={3}
                     autoFocus
                 />
@@ -190,7 +204,14 @@ const StudentSemesterGoal: React.FC<{
                     onDoubleClick={() => handleDoubleClick(index, field, value.toString())}
                     className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center text-[#1B1B1F] h-full p-2"
                 >
-                    {value || '-'}
+                    {isSavingCell ? (
+                        <div className="flex items-center justify-center w-full">
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Saving...
+                        </div>
+                    ) : (
+                        value || '-'
+                    )}
                 </div>
                 
                 <button
@@ -207,6 +228,7 @@ const StudentSemesterGoal: React.FC<{
                             commentableId: goal.id as number,
                             fieldName: field,
                             row: index,
+                            semester: semester
                         });
                     }}
                     className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
@@ -244,6 +266,7 @@ const StudentSemesterGoal: React.FC<{
                             fieldName={commentPopover.fieldName}
                             row={commentPopover.row}
                             onClose={() => setCommentPopover(null)}
+                            semester={commentPopover.semester}
                         />
                     </div>
                 </div>
@@ -272,7 +295,7 @@ const StudentSemesterGoal: React.FC<{
                     </div>
                     {goals.length === 0 ? (
                         <div className="py-10 text-start pl-10 text-gray-500">
-                            No goals yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "Add new goal"}</span> {useRole().isStudent && "to start!"}
+                            No goals yet. {isStudent && "Click"} <span className="text-[#21BAEA]">{isStudent && "Add new goal"}</span> {isStudent && "to start!"}
                         </div>
                     ) : (
                         goals.map((goal, index) => (
@@ -282,12 +305,20 @@ const StudentSemesterGoal: React.FC<{
                                         {renderCell(index, field as keyof SemesterGoal, goal[field as keyof SemesterGoal] || '')}
                                     </div>
                                 ))}
-                                {useRole().isStudent && <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
+                                {isStudent && <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
                                     <button
                                         onClick={() => handleDelete(index)}
-                                        className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        disabled={isDeleting === index}
+                                        className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Delete
+                                        {isDeleting === index ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            <>Delete</>
+                                        )}
                                     </button>
                                 </div>}
                             </div>
@@ -305,14 +336,19 @@ const SemesterGoalPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
     const [loadedSemesters, setLoadedSemesters] = useState<Set<number>>(new Set());
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { user } = useAuth();
-    const { id: studentId } = useParams<{ id: string }>();
+    let { id: studentId } = useParams<{ id: string }>();
+    if (!studentId && user) {
+        studentId = String(user.id);
+    }
+    const { isStudent } = useRole();
 
 
     useEffect(() => {
         const initializeData = async () => {
             try {
-                const { data } = await moduleService.getAll();
+                const { data } = await moduleService.getUserModules(Number(studentId));
                 setModules(data || []);
             } catch (error) {
                 console.error('Fetch modules error:', error);
@@ -366,10 +402,11 @@ const SemesterGoalPage: React.FC = () => {
             return;
         }
 
+        setIsSubmitting(true);
         try {
             const { data: addedGoal } = await semesterGoalService.add(Number(studentId), {
                 ...data,
-                semester: selectedSemester
+                semester: selectedSemester,
             });
             
             setGoalsBySemester(prev => ({
@@ -383,6 +420,8 @@ const SemesterGoalPage: React.FC = () => {
         } catch (error) {
             console.error('Add goal error:', error);
             toast.error('Failed to add goal.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -409,7 +448,7 @@ const SemesterGoalPage: React.FC = () => {
                             </button>
                         ))}
                     </div>
-                    {useRole().isStudent && <button
+                    {isStudent && <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA]"
                     >
@@ -516,15 +555,24 @@ const SemesterGoalPage: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsModalOpen(false)}
-                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
                                     >
-                                        Save
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            'Save'
+                                        )}
                                     </button>
                                 </div>
                             </form>

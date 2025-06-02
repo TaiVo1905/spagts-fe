@@ -3,14 +3,14 @@ import { getDatabase, ref, onValue, off, push, set, remove, get } from 'firebase
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCX80cGEqOFNrUglvAYre7YQ3MEZY1GPa4",
-  authDomain: "spagts-app.firebaseapp.com",
-  databaseURL: "https://spagts-app-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "spagts-app",
-  storageBucket: "spagts-app.firebasestorage.app",
-  messagingSenderId: "774889920045",
-  appId: "1:774889920045:web:06eb70b27e3ef644904aa4",
-  measurementId: "G-F8X0V4K9SJ"
+  apiKey: "AIzaSyBZ_GyuBSDEocEE22R0_NdPopk6lKjvrAI",
+  authDomain: "stagts-app2.firebaseapp.com",
+  databaseURL: "https://stagts-app2-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  projectId: "stagts-app2",
+  storageBucket: "stagts-app2.firebasestorage.app",
+  messagingSenderId: "444869712574",
+  appId: "1:444869712574:web:db6d8b2c1b9965ad7f1cef",
+  measurementId: "G-0FXFWE29R9"
 };
 
 const app = initializeApp(firebaseConfig);

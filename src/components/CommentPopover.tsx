@@ -342,7 +342,7 @@ const CommentPopover: React.FC<CommentPopoverProps> = ({
         )}
         <div className="flex justify-end mt-2">
           <button
-            onClick={handleAddComment(semester)}
+            onClick={()=> handleAddComment(semester)}
             disabled={!commentContent.trim()}
             className={`px-3 py-1 text-sm rounded-md ${
               commentContent.trim()
