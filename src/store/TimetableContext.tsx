@@ -8,7 +8,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 
-interface Event {
+export interface Event {
   id?: number;
   title: string;
   description?: string;
@@ -16,6 +16,13 @@ interface Event {
   end: Date | string;
   allDay: boolean;
   color?: string;
+  user_id: number;
+  module_id: number;
+  type: 'in_class' | 'self_study';
+  semester: number;
+  created_at?: string;
+  updated_at?: string;
+  plan_id?: number;
 }
 
 interface TimetableContextType {
