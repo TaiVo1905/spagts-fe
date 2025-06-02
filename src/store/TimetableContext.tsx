@@ -7,6 +7,7 @@ import {
 } from '../services/timetableService';
 import { toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
+import { useParams } from 'react-router-dom';
 
 export interface Event {
   id?: number;
@@ -45,6 +46,7 @@ export const TimetableProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { id: studentId } = useParams<{ id: string }>();
 
   const fetchEvents = async () => {
     if (!user?.id) {
@@ -54,7 +56,7 @@ export const TimetableProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getEvents(user.id);
+      const data = await getEvents(Number(studentId) || user.id);
       setEvents(data);
     } catch (err: any) {
       setError(err.message);

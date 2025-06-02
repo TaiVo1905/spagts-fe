@@ -2,6 +2,7 @@ import { createContext, useContext, ReactNode, useState, useEffect } from 'react
 import { authService } from '../services/authService';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from '../interface/Interface';
+import moduleService from '../services/moduleService';
 
 interface AuthContextType {
   user: User | null;
@@ -45,6 +46,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       const { user } = await authService.login(email, password);
+      const response = await moduleService.getUserModules(user.id);
+      const teacherModules = response.data;
       if (!user) {
         throw new Error('User data is missing');
       }
@@ -52,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const from = location.state?.from?.pathname || 
         (user.roles === 'Admin' ? '/admin/user-management' :
-         user.roles === 'Teacher' ? '/teacher' :
+         user.roles === 'Teacher' ? `/teacher/modules/${teacherModules[0].id}` :
          '/student/profile');
       
       navigate(from, { replace: true });

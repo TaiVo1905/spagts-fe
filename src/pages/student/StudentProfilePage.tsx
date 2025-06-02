@@ -21,7 +21,7 @@ const StudentProfilePage: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [avatar, setAvatar] = useState("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s");
+  const [avatar, setAvatar] = useState("https://cdn-icons-png.flaticon.com/512/10892/10892514.png");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   let { id: studentId } = useParams<{ id: string }>();
@@ -30,6 +30,7 @@ const StudentProfilePage: React.FC = () => {
   const [editingField, setEditingField] = useState<'name' | 'email' | null>(null);
   const [tempName, setTempName] = useState('');
   const [tempEmail, setTempEmail] = useState('');
+  const editProfile = location.pathname.toLowerCase().includes('admin/profile') || location.pathname.toLowerCase().includes('teacher/profile') || isStudent;
 
   const fetchStudentInfo = async () => {
       setLoading(true);
@@ -97,11 +98,16 @@ const StudentProfilePage: React.FC = () => {
       }
       const data = { [field]: value };
       await userService.updateProfile(Number(studentId) || user.id, data) && toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
+      if(field == 'name') {
+        setName(value);
+      } else {
+        setEmail(value);
+      }
     
   };
 
   const handleDoubleClick = (field: 'name' | 'email') => {
-    if (!isStudent) return;
+    if (!editProfile) return;
     setEditingField(field);
     if (field === 'name') {
       setTempName(name);
@@ -128,7 +134,6 @@ const StudentProfilePage: React.FC = () => {
     setIsUploading(true);
     try {
       const file = e.target.files[0];
-      console.log(123)
       const response = await userService.uploadAvatar(Number(studentId || user.id), file);
       setAvatar(response.data.imageUrl);
       toast.success('Avatar updated successfully');
@@ -162,7 +167,7 @@ const StudentProfilePage: React.FC = () => {
             className="w-[120px] h-[120px] rounded-full object-cover"
             />
           }
-            {isStudent && <div 
+            {editProfile && <div 
               className="absolute inset-0 bg-black/50 rounded-full flex justify-center items-center  opacity-0 cursor-pointer hover:opacity-100 transition-opacity duration-300"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -178,7 +183,7 @@ const StudentProfilePage: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <p className="text-xl font-bold">{name}</p>
-            <p className="text-sm text-gray-600 my-1">{className}</p>
+            {isStudent && <p className="text-sm text-gray-600 my-1">{className}</p>}
             <p className="text-sm text-gray-600 my-1">{email}</p>
           </div>
         </div>
@@ -193,11 +198,11 @@ const StudentProfilePage: React.FC = () => {
               onKeyDown={(e) => handleKeyDown(e, 'name')}
               onBlur={() => handleBlur('name')}
               onDoubleClick={() => handleDoubleClick('name')}
-              readOnly={!isStudent || editingField !== 'name'}
+              readOnly={!editProfile  || editingField !== 'name'}
               className={`w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg ${editingField === 'name' ? 'bg-white' : 'bg-gray-50'}`}
             />
           </div>
-          <div className="flex-1 mx-2.5">
+          {isStudent && <div className="flex-1 mx-2.5">
             <label htmlFor="class" className="text-sm text-[#85877E] font-bold block mb-1.5">Class:</label>
             <input 
               type="text" 
@@ -206,7 +211,7 @@ const StudentProfilePage: React.FC = () => {
               readOnly={true}
               className="w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg"
             />
-          </div>
+          </div>}
           <div className="flex-1 mx-2.5">
             <label htmlFor="email" className="text-sm text-[#85877E] font-bold block mb-1.5">Email:</label>
             <input
@@ -217,12 +222,12 @@ const StudentProfilePage: React.FC = () => {
               onKeyDown={(e) => handleKeyDown(e, 'email')}
               onBlur={() => handleBlur('email')}
               onDoubleClick={() => handleDoubleClick('email')}
-              readOnly={!isStudent || editingField !== 'email'}
+              readOnly={!editProfile || editingField !== 'email'}
               className={`w-full border border-[#EEEEEE] h-12 pl-5 rounded-lg ${editingField === 'email' ? 'bg-white' : 'bg-gray-50'}`}
             />
           </div>
         </div>
-        {isStudent && (
+        {editProfile && (
           <>
             <div className="font-bold text-2xl text-left leading-[50px] border-b border-[#C5C1C1]">Password</div>
             <div className="mt-[30px] w-full flex flex-row gap-[30px] items-center">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 type Student = {
   id: number;
@@ -29,6 +29,7 @@ const getStatusColor = (status: string) => {
 const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
 
 const StudentCard: React.FC<Student> = ({
+  id,
   name,
   avatar,
   updatedAt,
@@ -47,9 +48,12 @@ const StudentCard: React.FC<Student> = ({
     date.setDate(startOfWeek.getDate() + i);
     return date;
   });
+  const navigate = useNavigate();
 
   return (
-    <div className="w-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 p-4 text-sm font-sans">
+    <div className="w-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 p-4 text-sm font-sans cursor-pointer"
+    onClick={() => navigate(`/teacher/students/${id}/learning-journal/semester1`)}
+    >
       <div className="flex justify-between items-center">
         <div className="flex items-center">
           <img
@@ -249,7 +253,7 @@ const StudentCardList: React.FC = () => {
           return {
             id: student.id,
             name: student.name,
-            avatar: student.imageUrl,
+            avatar: student.imageUrl || "https://cdn-icons-png.flaticon.com/512/10892/10892514.png",
             updatedAt: allRecords.length > 0 ? formatTimeAgo(allRecords[0].updated_at) : 'Never',
             status,
             overdue: `${overdueTasks}/${totalTasks}`,

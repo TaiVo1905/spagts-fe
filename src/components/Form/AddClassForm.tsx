@@ -1,4 +1,4 @@
-// AddClassForm.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Class, User } from '../../interface/Interface';
 import userService from '../../services/userService';

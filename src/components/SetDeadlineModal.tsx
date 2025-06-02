@@ -5,6 +5,7 @@ import { ref, set, push } from 'firebase/database';
 import { database } from '../services/firebaseService';
 import dayjs from 'dayjs';
 import axiosClient from '../services/axiosClient';
+import toast from 'react-hot-toast';
 
 interface SetDeadlineModalProps {
   isOpen: boolean;
@@ -107,7 +108,7 @@ const SetDeadlineModal: React.FC<SetDeadlineModalProps> = ({
       const successful = results.filter(result => result.status === 'fulfilled').length;
       
       if (successful > 0) {
-        message.success(`Deadlines set for ${successful} students in ${currentModuleName}`);
+        toast.success(`Deadlines set for ${successful} students in ${currentModuleName}`);
         onClose();
         form.resetFields();
       } else {

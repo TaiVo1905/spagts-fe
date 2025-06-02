@@ -8,8 +8,7 @@ import DashboardPage from "../pages/teacher/DashboardPage";
 
 export const teacherRoutes: RouteObject[] =  [
       { path: "profile", element: <StudentProfilePage /> },
-      { path: "dashboard", element: <DashboardPage /> },
-      { path: "dashboard/modules/:moduleId", element: <DashboardPage /> },
+      { path: "modules/:moduleId", element: <DashboardPage /> },
       { path: "students/:id/profile", element: <StudentProfilePage /> },
       { path: "students/:id/achievement", element: <CertificatePage /> },
       { path: "students/:id/semester-goal", element: <StudentSemesterGoalPage /> },

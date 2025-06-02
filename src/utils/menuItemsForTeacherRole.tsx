@@ -23,7 +23,7 @@ const menuItems = () => {
                 
                 const mappedItems = teacherModules.map((teacherModule: any) => ({
                     label: teacherModule.name,
-                    link: `/teacher/Dashboard/modules/${teacherModule.id}`, 
+                    link: `/teacher/modules/${teacherModule.id}`, 
                     icon: <FaGraduationCap />
                 }));
                 

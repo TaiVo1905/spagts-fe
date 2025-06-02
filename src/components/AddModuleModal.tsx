@@ -5,42 +5,59 @@ import { Class } from '../interface/Interface';
 import { useAuth } from '../store/AuthContext';
 import axiosClient from '../services/axiosClient';
 import { database } from '../services/firebaseService';
-import { ref, set } from 'firebase/database';
+import { ref, set, remove } from 'firebase/database';
+import { Modal, Form, Input, Checkbox, message, Button, Popconfirm } from 'antd';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+import toast from 'react-hot-toast';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubjectAdded: () => void;
+  moduleToEdit?: {
+    id: number;
+    name: string;
+    classIds: number[];
+  };
 }
 
-const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded }) => {
-  const [subjectName, setSubjectName] = useState('');
+const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded, moduleToEdit }) => {
+  const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassIds, setSelectedClassIds] = useState<number[]>([]);
   const [isFetchingClasses, setIsFetchingClasses] = useState(false);
-  const [fetchClassesError, setFetchClassesError] = useState<string | null>(null);
   const {user} = useAuth();
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && user?.id) {
       const fetchClasses = async () => {
         setIsFetchingClasses(true);
-        setFetchClassesError(null);
         try {
           const data = (await classService.getUserClasses(user.id)).data;
           setClasses(data);
         } catch (err) {
           console.error('Failed to fetch classes:', err);
-          setFetchClassesError('Failed to load classes.');
+          message.error('Failed to load classes.');
         } finally {
           setIsFetchingClasses(false);
         }
       };
       fetchClasses();
     }
-  }, [isOpen]);
+  }, [isOpen, user?.id]);
+
+  useEffect(() => {
+    if (moduleToEdit) {
+      form.setFieldsValue({
+        subjectName: moduleToEdit.name
+      });
+      setSelectedClassIds(moduleToEdit.classIds);
+    } else {
+      form.resetFields();
+      setSelectedClassIds([]);
+    }
+  }, [moduleToEdit, form]);
 
   const handleClassSelection = (classId: number) => {
     setSelectedClassIds(prevSelectedIds =>
@@ -48,125 +65,178 @@ const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded }) =>
         ? prevSelectedIds.filter(id => id !== classId)
         : [...prevSelectedIds, classId]
     );
-    console.log(selectedClassIds)
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subjectName.trim()) {
-      setError('Subject name cannot be empty.');
+  const handleSubmit = async (values: { subjectName: string }) => {
+    if (!user?.id) {
+      message.error('User not authenticated');
       return;
     }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const newModule = (await moduleService.add({ name: subjectName, teacher_id: user.id })).data;
 
-      if (selectedClassIds.length > 0 && newModule.id) {
-        await moduleService.addClassesToModule(newModule.id, selectedClassIds);
-        const teacherResponse = await axiosClient.get(`/modules/${newModule.id}/users`, {
-                params: { roles: 'Teacher' }
-              });
+    if (selectedClassIds.length === 0) {
+      message.error('Please select at least one class');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (moduleToEdit) {
+        // Update existing module
+        await moduleService.update(moduleToEdit.id, { 
+          name: values.subjectName,
+          teacher_id: user.id 
+        });
         
-              const teachers = teacherResponse.data?.data || [];
-              
-              // Add teachers to module_teachers reference
-              console.log(teachers)
-              await Promise.allSettled(
-                teachers.map(async (teacher: any) => {
-                  if (teacher?.id) {
-                    const moduleTeacherRef = ref(database, `module_teachers/${newModule.id}/${teacher.id}`);
-                    await set(moduleTeacherRef, true);
-                  }
-                })
-              );
+        // Update class associations
+        await moduleService.addClassesToModule(moduleToEdit.id, selectedClassIds);
+        
+        toast.success('Subject updated successfully');
+      } else {
+        // Create new module
+        const newModule = (await moduleService.add({ 
+          name: values.subjectName, 
+          teacher_id: user.id 
+        })).data;
+
+        if (newModule.id) {
+          await moduleService.addClassesToModule(newModule.id, selectedClassIds);
+          const teacherResponse = await axiosClient.get(`/modules/${newModule.id}/users`, {
+            params: { roles: 'Teacher' }
+          });
+          
+          const teachers = teacherResponse.data?.data || [];
+          
+          await Promise.allSettled(
+            teachers.map(async (teacher: any) => {
+              if (teacher?.id) {
+                const moduleTeacherRef = ref(database, `module_teachers/${newModule.id}/${teacher.id}`);
+                await set(moduleTeacherRef, true);
+              }
+            })
+          );
+        }
+        toast.success('Subject added successfully');
       }
 
-      setSubjectName('');
+      form.resetFields();
       setSelectedClassIds([]);
       onSubjectAdded();
       onClose();
     } catch (err) {
-      console.error('Failed to add subject or link classes:', err);
-      setError('Failed to add subject or link classes. Please try again.');
+      console.error('Failed to add/update subject:', err);
+      message.error('Failed to add/update subject. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  const handleDelete = async () => {
+    if (!moduleToEdit?.id || !user?.id) return;
+
+    try {
+      setIsLoading(true);
+      // Delete module from database
+      await moduleService.delete(moduleToEdit.id);
+      
+      // Delete module from Firebase
+      const moduleTeacherRef = ref(database, `module_teachers/${moduleToEdit.id}`);
+      await remove(moduleTeacherRef);
+
+      toast.success('Subject deleted successfully');
+      onSubjectAdded();
+      onClose();
+    } catch (err) {
+      console.error('Failed to delete subject:', err);
+      message.error('Failed to delete subject. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 border-l-4 border-blue-500 pl-2">Add New Subject</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="subjectName" className="block text-gray-700 text-sm font-bold mb-2">Subject name</label>
-            <input
-              type="text"
-              id="subjectName"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="e.g. Mathematics, English, Science"
-              value={subjectName}
-              onChange={(e) => setSubjectName(e.target.value)}
-              disabled={isLoading || isFetchingClasses}
-            />
-          </div>
+    <Modal
+      title={moduleToEdit ? "Edit Subject" : "Add New Subject"}
+      open={isOpen}
+      onCancel={onClose}
+      footer={null}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        preserve={false}
+      >
+        <Form.Item
+          name="subjectName"
+          label="Subject name"
+          rules={[{ required: true, message: 'Please enter subject name' }]}
+        >
+          <Input 
+            placeholder="e.g. Mathematics, English, Science"
+            disabled={isLoading || isFetchingClasses}
+          />
+        </Form.Item>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Link to Classes (Optional)</label>
-            {isFetchingClasses ? (
-              <p>Loading classes...</p>
-            ) : fetchClassesError ? (
-              <p className="text-red-500 text-xs italic">{fetchClassesError}</p>
-            ) : (classes.length > 0 ? (
-              <div className="border rounded p-2 max-h-40 overflow-y-auto">
-                {classes.map(classItem => (
-                  <div key={classItem.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={`class-${classItem.id}`}
-                      checked={selectedClassIds.includes(classItem.id)}
-                      onChange={() => handleClassSelection(classItem.id)}
-                      className="mr-2 leading-tight"
-                      disabled={isLoading}
-                    />
-                    <label htmlFor={`class-${classItem.id}`} className="text-gray-700 text-sm">
-                      {classItem.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600 text-sm">No classes available.</p>
-            ))
-            }
-          </div>
+        <Form.Item 
+          label="Link to Classes" 
+          required
+          validateStatus={selectedClassIds.length === 0 ? 'error' : ''}
+          help={selectedClassIds.length === 0 ? 'Please select at least one class' : ''}
+        >
+          {isFetchingClasses ? (
+            <p>Loading classes...</p>
+          ) : classes.length > 0 ? (
+            <div className="max-h-40 overflow-y-auto border rounded p-2">
+              {classes.map(classItem => (
+                <div key={classItem.id} className="mb-2">
+                  <Checkbox
+                    checked={selectedClassIds.includes(classItem.id)}
+                    onChange={() => handleClassSelection(classItem.id)}
+                    disabled={isLoading}
+                  >
+                    {classItem.name}
+                  </Checkbox>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-sm">No classes available.</p>
+          )}
+        </Form.Item>
 
-          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              className={`bg-cyan-500 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${(isLoading || isFetchingClasses) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={isLoading || isFetchingClasses}
-            >
-              {isLoading ? 'Adding...' : 'Create Subject'}
-            </button>
-            <button
-              type="button"
-              className="inline-block align-baseline font-bold text-sm text-gray-500 hover:text-gray-800"
-              onClick={onClose}
-              disabled={isLoading || isFetchingClasses}
-            >
-              Cancel
-            </button>
+        <Form.Item>
+          <div className="flex justify-between">
+            {moduleToEdit && (
+              <Popconfirm
+                title="Delete Subject"
+                description="Are you sure you want to delete this subject?"
+                icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+                onConfirm={handleDelete}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button danger loading={isLoading}>
+                  Delete
+                </Button>
+              </Popconfirm>
+            )}
+            <div className="flex gap-2">
+              <Button onClick={onClose} disabled={isLoading || isFetchingClasses}>
+                Cancel
+              </Button>
+              <Button 
+                type="primary"
+                htmlType="submit"
+                loading={isLoading}
+                disabled={isLoading || isFetchingClasses || selectedClassIds.length === 0}
+              >
+                {moduleToEdit ? 'Update' : 'Create'} Subject
+              </Button>
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 };
 
