@@ -6,6 +6,10 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../store/AuthContext';
 import moduleService, { Module } from '../../services/moduleService';
 import { useRole } from '../../utils/useRole';
+import CommentPopover from '../../components/CommentPopover';
+import { ref, onValue, off } from 'firebase/database';
+import { database } from '../../services/firebaseService';
+import { useParams, useLocation } from 'react-router-dom';
 
 const initialGoalsBySemester: Record<string, SemesterGoal[]> = {
     S1: [], S2: [], S3: [], S4: [], S5: [], S6: [],
@@ -17,13 +21,88 @@ const headers = ['Course', 'What I expect from the course', 'What I expect from 
 const columnWidths = ['min-w-[200px]', 'min-w-[350px]', 'min-w-[380px]', 'min-w-[350px]', 
                      'min-w-[350px]', 'min-w-[350px]', 'min-w-[60px]'];
 
-const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; setGoals: (goals: SemesterGoal[]) => void }> = 
-({ semester, goals, setGoals }) => {
+const StudentSemesterGoal: React.FC<{ 
+    semester: number; 
+    goals: SemesterGoal[]; 
+    setGoals: (goals: SemesterGoal[]) => void 
+}> = ({ semester, goals, setGoals }) => {
     const { user } = useAuth();
+    const location = useLocation();
     const [editingCell, setEditingCell] = useState<{ index: number; field: keyof SemesterGoal } | null>(null);
     const [tempValue, setTempValue] = useState<string>('');
+    const [isSaving, setIsSaving] = useState<{ index: number; field: keyof SemesterGoal } | null>(null);
+    const [isDeleting, setIsDeleting] = useState<number | null>(null);
+    const [commentPopover, setCommentPopover] = useState<{
+        isOpen: boolean;
+        position: { top: number; left: number };
+        commentableType: string;
+        commentableId: number;
+        fieldName: string;
+        row: number;
+        semester: number;
+    } | null>(null);
+    const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
+    const { isStudent } = useRole();
+
+    useEffect(() => {
+        if (!user) return;
+
+        const unsubscribeCallbacks: (() => void)[] = [];
+
+        goals.forEach((goal, index) => {
+            ['course', 'courseExpectation', 'teacherExpectation', 'selfExpectation', 'studentEvaluation', 'teacherEvaluation'].forEach((field) => {
+                
+                const path = `comments/App\\Models\\SemesterGoal/${goal.id}/${field}/${index}`;
+                const commentsRef = ref(database, path);
+                
+                const unsubscribe = onValue(commentsRef, (snapshot) => {
+                    const commentsData = snapshot.val();
+                    const count = commentsData ? Object.keys(commentsData).length : 0;
+                    
+                    setCommentsCount(prev => ({
+                        ...prev,
+                        [`${goal.id}-${field}-${index}`]: count
+                    }));
+                });
+
+                unsubscribeCallbacks.push(() => off(commentsRef));
+            });
+        });
+
+        return () => unsubscribeCallbacks.forEach(unsub => unsub());
+    }, [goals, user]);
+
+    
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const shouldHighlight = searchParams.get('highlight') === 'true';
+        const fieldName = searchParams.get('field');
+        const row = searchParams.get('row');
+
+        if (shouldHighlight && fieldName && row !== null) {
+            const rowIndex = parseInt(row);
+            const goal = goals[rowIndex];
+            if (goal?.id !== undefined) {
+                const iconId = `comment-icon-${goal.id}-${fieldName}-${rowIndex}`;
+                const icon = document.getElementById(iconId);
+                if (icon) {
+                    const rect = icon.getBoundingClientRect();
+                    setCommentPopover({
+                        isOpen: true,
+                        position: { top: rect.bottom, left: rect.left },
+                        commentableType: 'App\\Models\\SemesterGoal',
+                        commentableId: goal.id as number,
+                        fieldName,
+                        row: rowIndex,
+                        semester: semester
+                    });
+                }
+            }
+        }
+    }, [location.search, goals]);
 
     const handleDoubleClick = (index: number, field: keyof SemesterGoal, value: string) => {
+        if (!isStudent) return;
         setEditingCell({ index, field });
         setTempValue(value);
     };
@@ -32,15 +111,25 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
         if (!editingCell || !user) return;
 
         const { index, field } = editingCell;
-        if (tempValue !== (goals[index][field] || '')) {
+        const goal = goals[index];
+        if (!goal?.id || goal.semester === undefined) return;
+
+        if (tempValue !== (goal[field] || '')) {
+            setIsSaving({ index, field });
             try {
-                await semesterGoalService.update(goals[index].id, { [field]: tempValue });
-                const updatedGoals = goals.map((goal, i) => i === index ? { ...goal, [field]: tempValue } : goal);
+                const updateData = {
+                    ...goal,
+                    [field]: tempValue
+                };
+                await semesterGoalService.update(goal.id, updateData);
+                const updatedGoals = goals.map((g, i) => i === index ? { ...g, [field]: tempValue } : g);
                 setGoals(updatedGoals);
                 toast.success('Goal updated successfully!');
             } catch (error) {
                 console.error('Update goal error:', error);
                 toast.error('Failed to update goal. Please try again.');
+            } finally {
+                setIsSaving(null);
             }
         }
         setEditingCell(null);
@@ -60,6 +149,7 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
         if (!goal.id || !user) return;
 
         if (window.confirm('Are you sure you want to delete this goal?')) {
+            setIsDeleting(index);
             try {
                 await semesterGoalService.delete(goal.id);
                 setGoals(goals.filter((_, i) => i !== index));
@@ -67,14 +157,22 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
             } catch (error) {
                 console.error('Delete goal error:', error);
                 toast.error('Failed to delete goal. Please try again.');
+            } finally {
+                setIsDeleting(null);
             }
         }
     };
 
-    const renderCell = (index: number, field: keyof SemesterGoal, value: string) => {
+    const renderCell = (index: number, field: keyof SemesterGoal, value: string | number) => {
         const isEditing = editingCell?.index === index && editingCell?.field === field;
+        const isSavingCell = isSaving?.index === index && isSaving?.field === field;
+        const goal = goals[index];
+        if (!goal?.id || goal.semester === undefined) return null;
+        
+        const commentCount = commentsCount[`${goal.id}-${field}-${index}`] || 0;
+        const iconId = `comment-icon-${goal.id}-${field}-${index}`;
 
-        if (isEditing && useRole().isStudent) {
+        if (isEditing && isStudent) {
             return field === 'course' ? (
                 <input
                     type="text"
@@ -82,7 +180,8 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
                     onChange={(e) => setTempValue(e.target.value)}
                     onBlur={saveChanges}
                     onKeyDown={handleKeyDown}
-                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    disabled={isSavingCell}
+                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
                     autoFocus
                 />
             ) : (
@@ -91,7 +190,8 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
                     onChange={(e) => setTempValue(e.target.value)}
                     onBlur={saveChanges}
                     onKeyDown={handleKeyDown}
-                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    disabled={isSavingCell}
+                    className="w-full p-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
                     rows={3}
                     autoFocus
                 />
@@ -99,29 +199,103 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
         }
 
         return (
-            <div
-                onDoubleClick={() => handleDoubleClick(index, field, value)}
-                className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center text-[#1B1B1F]"
-            >
-                {value || '-'}
+            <div className="relative group h-full">
+                <div
+                    onDoubleClick={() => handleDoubleClick(index, field, value.toString())}
+                    className="cursor-pointer hover:bg-gray-100 hover:border-dashed hover:border-gray-300 min-h-[3rem] flex items-center text-[#1B1B1F] h-full p-2"
+                >
+                    {isSavingCell ? (
+                        <div className="flex items-center justify-center w-full">
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Saving...
+                        </div>
+                    ) : (
+                        value || '-'
+                    )}
+                </div>
+                
+                <button
+                    id={iconId}
+                    onClick={e => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setCommentPopover({
+                            isOpen: true,
+                            position: { 
+                                top: rect.bottom + window.scrollY, 
+                                left: rect.left + window.scrollX 
+                            },
+                            commentableType: 'App\\Models\\SemesterGoal',
+                            commentableId: goal.id as number,
+                            fieldName: field,
+                            row: index,
+                            semester: semester
+                        });
+                    }}
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                </button>
+                
+                {commentCount > 0 && (
+                    <div className="absolute bottom-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                )}
             </div>
         );
     };
 
     return (
         <div className="w-full bg-white rounded-xl border border-gray-100 shadow-md overflow-hidden">
+            {commentPopover?.isOpen && (
+                <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setCommentPopover(null)}
+                >
+                    <div 
+                        className="absolute z-50"
+                        style={{
+                            top: `${commentPopover.position.top}px`,
+                            left: `${commentPopover.position.left}px`,
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <CommentPopover
+                            commentableType={commentPopover.commentableType}
+                            commentableId={commentPopover.commentableId}
+                            fieldName={commentPopover.fieldName}
+                            row={commentPopover.row}
+                            onClose={() => setCommentPopover(null)}
+                            semester={commentPopover.semester}
+                        />
+                    </div>
+                </div>
+            )}
+            
             <div className="overflow-x-auto max-w-full max-h-[580px] overflow-y-auto scrollbar-hide">
                 <div className="min-w-fit">
                     <div className="flex text-sm font-semibold text-[#21BAEA] bg-[#f9fcff] border-b border-gray-200 sticky top-0 z-10">
-                        {headers.map((label, idx) => (
-                            <div key={idx} className={`${columnWidths[idx]} py-3 px-4 border-r last:border-none flex justify-center items-center whitespace-nowrap`}>
-                                {label}
-                            </div>
-                        ))}
+                        {headers.map((label, idx) => {
+                            const field = ['course', 'courseExpectation', 'teacherExpectation', 'selfExpectation', 'studentEvaluation', 'teacherEvaluation'][idx];
+                            const commentCount = Object.entries(commentsCount)
+                                .filter(([key]) => key.startsWith(`${field}-`))
+                                .reduce((sum, [, count]) => sum + count, 0);
+                            
+                            return (
+                                <div key={idx} className={`${columnWidths[idx]} py-3 px-4 border-r last:border-none flex justify-center items-center whitespace-nowrap`}>
+                                    {label}
+                                    {commentCount > 0 && (
+                                        <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                            {commentCount}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                     {goals.length === 0 ? (
                         <div className="py-10 text-start pl-10 text-gray-500">
-                            No goals yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "Add new goal"}</span> {useRole().isStudent && "to start!"}
+                            No goals yet. {isStudent && "Click"} <span className="text-[#21BAEA]">{isStudent && "Add new goal"}</span> {isStudent && "to start!"}
                         </div>
                     ) : (
                         goals.map((goal, index) => (
@@ -131,12 +305,20 @@ const StudentSemesterGoal: React.FC<{ semester: number; goals: SemesterGoal[]; s
                                         {renderCell(index, field as keyof SemesterGoal, goal[field as keyof SemesterGoal] || '')}
                                     </div>
                                 ))}
-                                {useRole().isStudent && <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
+                                {isStudent && <div className={`${columnWidths[6]} py-2 px-2 flex justify-center items-center`}>
                                     <button
                                         onClick={() => handleDelete(index)}
-                                        className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        disabled={isDeleting === index}
+                                        className="inline-block cursor-pointer mx-auto px-2 py-1 text-sm bg-red-50 text-[#EF4444] rounded-md hover:bg-red-100 hover:text-red-700 hover:shadow-sm transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Delete
+                                        {isDeleting === index ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            <>Delete</>
+                                        )}
                                     </button>
                                 </div>}
                             </div>
@@ -154,19 +336,24 @@ const SemesterGoalPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
     const [loadedSemesters, setLoadedSemesters] = useState<Set<number>>(new Set());
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { user } = useAuth();
+    let { id: studentId } = useParams<{ id: string }>();
+    if (!studentId && user) {
+        studentId = String(user.id);
+    }
+    const { isStudent } = useRole();
+
 
     useEffect(() => {
         const initializeData = async () => {
-
             try {
-                const { data } = await moduleService.getAll();
+                const { data } = await moduleService.getUserModules(Number(studentId));
                 setModules(data || []);
             } catch (error) {
                 console.error('Fetch modules error:', error);
                 toast.error('Failed to load modules.');
             }
-            
             
             if (user) {
                 fetchGoalsForSemester(1);
@@ -180,7 +367,7 @@ const SemesterGoalPage: React.FC = () => {
         if (!user || loadedSemesters.has(semester)) return;
 
         try {
-            const { data } = await semesterGoalService.getAll(user.id, semester);
+            const { data } = await semesterGoalService.getAll(Number(studentId) || user.id, semester);
             setGoalsBySemester(prev => ({ 
                 ...prev, 
                 [`S${semester}`]: data || [] 
@@ -215,10 +402,11 @@ const SemesterGoalPage: React.FC = () => {
             return;
         }
 
+        setIsSubmitting(true);
         try {
-            const { data: addedGoal } = await semesterGoalService.add(user.id, {
+            const { data: addedGoal } = await semesterGoalService.add(Number(studentId), {
                 ...data,
-                semester: selectedSemester
+                semester: selectedSemester,
             });
             
             setGoalsBySemester(prev => ({
@@ -232,6 +420,8 @@ const SemesterGoalPage: React.FC = () => {
         } catch (error) {
             console.error('Add goal error:', error);
             toast.error('Failed to add goal.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -258,7 +448,7 @@ const SemesterGoalPage: React.FC = () => {
                             </button>
                         ))}
                     </div>
-                    {useRole().isStudent && <button
+                    {isStudent && <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] text-white px-5 py-3 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA]"
                     >
@@ -269,12 +459,7 @@ const SemesterGoalPage: React.FC = () => {
                 <StudentSemesterGoal
                     semester={selectedSemester}
                     goals={goalsBySemester[`S${selectedSemester}`]}
-                    setGoals={(newGoals) => {
-                        setGoalsBySemester(prev => ({ 
-                            ...prev, 
-                            [`S${selectedSemester}`]: newGoals 
-                        }));
-                    }}
+                    setGoals={updateGoals}
                 />
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -312,7 +497,6 @@ const SemesterGoalPage: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Course Expectation */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Course Expectation <span className="text-red-500">*</span>
@@ -331,7 +515,6 @@ const SemesterGoalPage: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Teacher Expectation */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Teacher Expectation <span className="text-red-500">*</span>
@@ -350,7 +533,6 @@ const SemesterGoalPage: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Self Expectation */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Self Expectation <span className="text-red-500">*</span>
@@ -369,20 +551,28 @@ const SemesterGoalPage: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Actions */}
                                 <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100">
                                     <button
                                         type="button"
                                         onClick={() => setIsModalOpen(false)}
-                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
                                     >
-                                        Save
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            'Save'
+                                        )}
                                     </button>
                                 </div>
                             </form>

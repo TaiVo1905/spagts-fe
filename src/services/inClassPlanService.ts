@@ -2,7 +2,7 @@
 import axiosClient from './axiosClient';
 
 export interface InClassPlan {
-  id: number;
+  id?: number;
   date: string;
   lesson_learned: string;
   self_assessment: number;
@@ -20,13 +20,13 @@ const inClassPlanService = {
     return response.data;
   },
 
-  // Lấy kế hoạch theo ID
+
   getById: async (id: number) => {
     const response = await axiosClient.get(`/in-class-plan/${id}`);
     return response.data;
   },
 
-  // Tạo mới kế hoạch
+
   add: async (student_id: number, data: InClassPlan) => {
     const response = await axiosClient.post(`/in-class-plan?studentId=${student_id}`, data);
     return response.data;

@@ -1,51 +1,34 @@
-import React from "react";
+import { useAuth } from "../store/AuthContext";
+import { useLocation } from "react-router-dom";
 
-const teachers = [
-  {
-    backgroundImage:
-      "https://i.pinimg.com/736x/36/b0/23/36b023762ab3337d3eba0d0c253785f9.jpg",
-    avatar:
-      "https://i.pinimg.com/736x/83/40/99/8340999014aee07ce2b7029bc98eb463.jpg",
-    subject: "IT English",
-    name: "Nguyễn Thị Thùy Trang",
-    email: "TrangPNVenglish@gmail.com",
-  },
-];
+const TeacherCard: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
 
-const TeacherCard = ({ backgroundImage, avatar, subject, name, email }) => {
   return (
-    <div
-      className="flex rounded-xl overflow-hidden shadow-md ml-5"
-      style={{ width: "950px", height: "261px" }}
-    >
-      <div
-        className="bg-cover bg-center"
-        style={{
-          backgroundImage: `url(${backgroundImage})`,
-          width: "600px",
-          height: "261px",
-        }}
-      ></div>
-      <div
-        className="bg-[#fef6f0] flex items-center p-4"
-  style={{ width: "371px", height: "261px", backgroundColor: "#FFF5EB" }}
-      >
-        <img
-          src={avatar}
-          alt={name}
-  style={{ width: "76px", height: "76px" }} 
-className="rounded-full mr-4"
-
+    <div className="flex flex-col gap-4">
+      <div className="flex rounded-xl overflow-hidden shadow-md h-[261px]">
+        <div
+          className="bg-cover bg-center w-[70%] h-full"
+          style={{
+            backgroundImage: `url("https://i.pinimg.com/736x/36/b0/23/36b023762ab3337d3eba0d0c253785f9.jpg")`,
+          }}
         />
-        <div>
-          <h2 className="text-lg font-semibold">{subject}</h2>
-          <p className="text-base text-gray-800">{name}</p>
-          <a
-            href={`mailto:${email}`}
-            className="text-sm text-blue-500 underline"
-          >
-            {email}
-          </a>
+        <div className="bg-[#FFF5EB] flex justify-center items-center p-4 w-[30%] h-full">
+          <img
+            src={user?.imageUrl || "https://i.pinimg.com/736x/83/40/99/8340999014aee07ce2b7029bc98eb463.jpg"}
+            alt={user?.name}
+            className="rounded-full mr-4 w-[76px] h-[76px]"
+          />
+          <div>
+            <p className="text-base text-gray-800">{user?.name}</p>
+            <a
+              href={`mailto:${user?.email}`}
+              className="text-sm text-blue-500 underline"
+            >
+              {user?.email}
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -55,16 +38,7 @@ className="rounded-full mr-4"
 const TeacherList = () => {
   return (
     <div className="p-6">
-      {teachers.map((teacher, index) => (
-        <TeacherCard
-          key={index}
-          backgroundImage={teacher.backgroundImage}
-          avatar={teacher.avatar}
-          subject={teacher.subject}
-          name={teacher.name}
-          email={teacher.email}
-        />
-      ))}
+      <TeacherCard />
     </div>
   );
 };

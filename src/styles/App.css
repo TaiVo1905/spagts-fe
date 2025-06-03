@@ -8,10 +8,7 @@
 }
 
 #root {
-  /* max-width: 1280px; */
   margin: 0 auto;
-  /* padding: 2rem; */
-  /* text-align: center; */
   font-family: 'Poppins', sans-serif;
 }
 
@@ -66,4 +63,19 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.highlight-comment {
+  animation: highlight-fade 2s ease-out;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
+  transition: box-shadow 0.3s ease;
+}
+
+@keyframes highlight-fade {
+  0% {
+    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0);
+  }
 }

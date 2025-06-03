@@ -18,7 +18,10 @@ const CertificatePage: React.FC = () => {
     const [activeId, setActiveId] = useState<number | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [loadedSemesters, setLoadedSemesters] = useState<Set<number>>(new Set());
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<number | null>(null);
     const { user } = useAuth();
+    const {isStudent} = useRole();
 
     const { register, handleSubmit, formState: { errors }, reset } = useForm<CertificatePayload>({
         defaultValues: {
@@ -68,24 +71,22 @@ const CertificatePage: React.FC = () => {
     };
 
     const handleUpdate = async (id: number, data: CertificatePayload) => {
+        setIsSubmitting(true);
         try {
             const formData = new FormData();
-
             formData.append('module', data.module);
             formData.append('studentId', user?.id?.toString() || '');
             formData.append('semester', selectedSemester.toString());
-            formData.append('date', data.date);
+            formData.append('date', data.date.toString());
             formData.append('description', data.description);
-            
             
             if (imageFile) {
                 formData.append('imageUrl', imageFile);
             } else if (!id) {
-                
                 toast.error('Please upload an image');
+                setIsSubmitting(false);
                 return false;
             }
-
             
             if (id) {
                 formData.append('_method', 'PATCH');
@@ -108,6 +109,8 @@ const CertificatePage: React.FC = () => {
             console.error('Certificate error:', error);
             toast.error(`Failed to ${id ? 'update' : 'add'} certificate`);
             return false;
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -123,6 +126,7 @@ const CertificatePage: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         if (window.confirm('Are you sure you want to delete this certificate?')) {
+            setIsDeleting(id);
             try {
                 await certificateService.delete(id);
                 setCertificatesBySemester(prev => ({
@@ -133,6 +137,8 @@ const CertificatePage: React.FC = () => {
             } catch (error) {
                 console.error('Delete certificate error:', error);
                 toast.error('Failed to delete certificate.');
+            } finally {
+                setIsDeleting(null);
             }
         }
     };
@@ -159,7 +165,7 @@ const CertificatePage: React.FC = () => {
                             </button>
                         ))}
                     </div>
-                    {useRole().isStudent && <button
+                    {isStudent && <button
                         onClick={() => {
                             setIsModalOpen(true);
                             setActiveId(null);
@@ -175,7 +181,7 @@ const CertificatePage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {currentCertificates.length === 0 ? (
                         <div className="col-span-1 sm:col-span-2 md:col-span-3 py-10 text-center text-gray-500">
-                            No certificates yet. {useRole().isStudent && "Click"} <span className="text-[#21BAEA]">{useRole().isStudent && "Add new certificate"}</span> {useRole().isStudent && "to start!"}
+                            No certificates yet. {isStudent && "Click"} <span className="text-[#21BAEA]">{isStudent && "Add new certificate"}</span> {isStudent && "to start!"}
                         </div>
                     ) : (
                         currentCertificates.map((cert) => (
@@ -197,7 +203,7 @@ const CertificatePage: React.FC = () => {
                                     >
                                         <HiDotsVertical className="w-5 h-5 text-gray-600 hover:text-gray-800" />
                                     </button>
-                                    {useRole().isStudent && activeId === cert.id && (
+                                    {isStudent && activeId === cert.id && (
                                         <div className="absolute top-10 right-2 bg-white shadow-md rounded-md p-2 z-10 border border-gray-200">
                                             <button 
                                                 onClick={() => {
@@ -205,21 +211,30 @@ const CertificatePage: React.FC = () => {
                                                         module: cert.module,
                                                         date: new Date(cert.date).toISOString().split('T')[0],
                                                         description: cert.description,
-                                                        studentId: cert.studentId,
-                                                        semester: cert.semester
+                                                        studentId: user?.id,
+                                                        semester: selectedSemester
                                                     });
                                                     setActiveId(cert.id);
                                                     setIsModalOpen(true);
                                                 }} 
+                                                disabled={isDeleting === cert.id}
                                                 className="block text-left w-full text-gray-700 hover:bg-gray-100 p-2 rounded text-sm"
                                             >
                                                 Edit
                                             </button>
                                             <button 
                                                 onClick={() => handleDelete(cert.id)} 
-                                                className="block text-left w-full text-red-600 hover:bg-red-100 p-2 rounded text-sm"
+                                                disabled={isDeleting === cert.id}
+                                                className="block text-left w-full text-red-600 hover:bg-red-100 p-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                                             >
-                                                Delete
+                                                {isDeleting === cert.id ? (
+                                                    <>
+                                                        <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                        Deleting...
+                                                    </>
+                                                ) : (
+                                                    'Delete'
+                                                )}
                                             </button>
                                         </div>
                                     )}
@@ -330,15 +345,24 @@ const CertificatePage: React.FC = () => {
                                             setImageFile(null);
                                             setActiveId(null);
                                         }}
-                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition"
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 cursor-pointer text-sm font-medium text-white bg-gradient-to-r from-[#21BAEA] to-[#1AA8D5] rounded-lg hover:from-[#21BAEA] hover:to-[#1AA8D5] focus:outline-none focus:ring-2 focus:ring-[#21BAEA] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
                                     >
-                                        {activeId ? 'Update' : 'Save'}
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                {activeId ? 'Updating...' : 'Saving...'}
+                                            </>
+                                        ) : (
+                                            activeId ? 'Update' : 'Save'
+                                        )}
                                     </button>
                                 </div>
                             </form>

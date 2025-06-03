@@ -20,7 +20,7 @@ const semesterGoalService = {
     },
     add: async (studentId: number, data: SemesterGoal) => {
         const response = await axiosClient.post(`users/${studentId}/semesterGoals`, {
-            studentId,
+            studentId: studentId,
             moduleId: data.moduleId,
             semester: data.semester,
             courseExpectation: data.courseExpectation,

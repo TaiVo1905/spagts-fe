@@ -26,23 +26,23 @@ const menuItems =  () => {
         { label: 'Timetable', link: '/student/timetable', icon: <FaCalendarAlt /> },
     ] :
     [
-        { label: 'My profile', link: `/teacher/student/${studentId}/profile`, icon: <FaUser /> },
-        { label: 'Achievement', link: `/teacher/student/${studentId}/achievement`, icon: <FaTrophy /> },
-        { label: 'Semester goals', link: `/teacher/student/${studentId}/semester-goal`, icon: <FaLayerGroup /> },
+        { label: 'My profile', link: `/teacher/students/${studentId}/profile`, icon: <FaUser /> },
+        { label: 'Achievement', link: `/teacher/students/${studentId}/achievement`, icon: <FaTrophy /> },
+        { label: 'Semester goals', link: `/teacher/students/${studentId}/semester-goal`, icon: <FaLayerGroup /> },
         {
           label: 'Learning journal',
           link: '#', 
           icon: <FaGraduationCap />,
           children: [
-              { label: 'Semester 1', link: `/teacher/student/${studentId}/learning-journal/semester1`, icon: <FaGraduationCap /> },  
-              { label: 'Semester 2', link: `/teacher/student/${studentId}/learning-journal/semester2`, icon: <FaGraduationCap /> },
-              { label: 'Semester 3', link: `/teacher/student/${studentId}/learning-journal/semester3`, icon: <FaGraduationCap /> },
-              { label: 'Semester 4', link: `/teacher/student/${studentId}/learning-journal/semester4`, icon: <FaGraduationCap /> },
-              { label: 'Semester 5', link: `/teacher/student/${studentId}/learning-journal/semester5`, icon: <FaGraduationCap /> },
-              { label: 'Semester 6', link: `/teacher/student/${studentId}/learning-journal/semester6`, icon: <FaGraduationCap /> },
+              { label: 'Semester 1', link: `/teacher/students/${studentId}/learning-journal/semester1`, icon: <FaGraduationCap /> },  
+              { label: 'Semester 2', link: `/teacher/students/${studentId}/learning-journal/semester2`, icon: <FaGraduationCap /> },
+              { label: 'Semester 3', link: `/teacher/students/${studentId}/learning-journal/semester3`, icon: <FaGraduationCap /> },
+              { label: 'Semester 4', link: `/teacher/students/${studentId}/learning-journal/semester4`, icon: <FaGraduationCap /> },
+              { label: 'Semester 5', link: `/teacher/students/${studentId}/learning-journal/semester5`, icon: <FaGraduationCap /> },
+              { label: 'Semester 6', link: `/teacher/students/${studentId}/learning-journal/semester6`, icon: <FaGraduationCap /> },
               ],
         },
-        { label: 'Timetable', link: `/teacher/student/${studentId}/timetable`, icon: <FaCalendarAlt /> },
+        { label: 'Timetable', link: `/teacher/students/${studentId}/timetable`, icon: <FaCalendarAlt /> },
     ];
 }
 

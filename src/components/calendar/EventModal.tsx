@@ -1,25 +1,23 @@
-import { forwardRef, useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useState } from 'react';
+import { Event } from '../../store/TimetableContext';
+import moduleService from '../../services/moduleService';
+import { useAuth } from '../../store/AuthContext';
+import { Module } from '../../services/moduleService';
 
-interface Event {
-  id?: number;
-  title: string;
-  description?: string;
-  start: Date | string;
-  end: Date | string;
-  allDay: boolean;
-  color?: string;
-}
-
-interface EventModalProps {
+export interface EventModalProps {
   event: Event | null;
-  onSave: (event: Event) => Promise<void>;
+  onSave: (eventData: any) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
+  isEditing: boolean;
+  isLoading: boolean;
 }
 
 export const EventModal = forwardRef<HTMLDialogElement, EventModalProps>(
-  ({ event, onSave, onDelete, onClose }, ref) => {
+  ({ event, onSave, onDelete, onClose, isEditing, isLoading }, ref) => {
+    const { user } = useAuth();
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [modules, setModules] = useState<Module[]>([]);
     const [formData, setFormData] = useState<Event>({
       title: '',
       description: '',
@@ -27,14 +25,51 @@ export const EventModal = forwardRef<HTMLDialogElement, EventModalProps>(
       end: new Date(),
       allDay: false,
       color: '#3b82f6',
+      user_id: user?.id || 0,
+      module_id: 0,
+      type: 'in_class',
+      semester: 1
     });
+
+    useEffect(() => {
+      if (user?.id) {
+        fetchModules();
+      }
+    }, [user?.id]);
+
+    const fetchModules = async () => {
+      try {
+        const response = await moduleService.getUserModules(user?.id || 0);
+        setModules(response.data);
+      } catch (error) {
+        console.error('Failed to fetch modules:', error);
+      }
+    };
+
+    useEffect(() => {
+      if (event) {
+        setFormData({
+          id: event.id,
+          title: event.title,
+          description: event.description || '',
+          start: event.start ? new Date(event.start) : new Date(),
+          end: event.end ? new Date(event.end) : new Date(event.start ? new Date(event.start).getTime() + 60 * 60 * 1000 : Date.now() + 60 * 60 * 1000),
+          allDay: event.allDay,
+          color: event.color || '#3b82f6',
+          user_id: event.user_id,
+          module_id: event.module_id,
+          type: event.type,
+          semester: event.semester
+        });
+      }
+    }, [event]);
+
     const validate = () => {
   const newErrors: { [key: string]: string } = {};
   if (!formData.title.trim()) newErrors.title = 'Title is required';
   if (!formData.start) newErrors.start = 'Start time is required';
   if (!formData.end) newErrors.end = 'End time is required';
   if (formData.start && formData.end && (new Date(formData.end)) < (new Date(formData.start))) {
-    console.log((new Date(formData.end)), (new Date(formData.start)))
     newErrors.end = 'End time must be after start time';
   }
   setErrors(newErrors);
@@ -45,28 +80,12 @@ export const EventModal = forwardRef<HTMLDialogElement, EventModalProps>(
   if (!date) return '';
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
-  // Convert to local time for input
   const tzOffset = d.getTimezoneOffset() * 60000;
   const localISO = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
   return localISO;
 };
 
-useEffect(() => {
-  if (event) {
-    setFormData({
-      id: event.id,
-      title: event.title,
-      description: event.description || '',
-      start: event.start ? new Date(event.start) : new Date(),
-      end: event.end ? new Date(event.end) : new Date(event.start ? new Date(event.start).getTime() + 60 * 60 * 1000 : Date.now() + 60 * 60 * 1000),
-      allDay: event.allDay,
-      color: event.color || '#3b82f6',
-    });
-  }
-}, [event]);
-
 const parseLocalDateTime = (value: string) => {
-  // value: '2025-05-08T00:00'
   const [date, time] = value.split('T');
   const [year, month, day] = date.split('-').map(Number);
   const [hour, minute] = time.split(':').map(Number);
@@ -104,7 +123,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
-                {event?.id ? 'Edit Event' : 'Create Event'}
+                {isEditing ? 'Edit Event' : 'Create Event'}
               </h2>
               <button
                 onClick={onClose}
@@ -126,6 +145,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                 />
                 {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <textarea
@@ -136,6 +156,61 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                   rows={2}
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Module</label>
+                <select
+                  name="module_id"
+                  value={formData.module_id}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  disabled={isEditing}
+                  required
+                >
+                  <option value={0}>Select Module</option>
+                  {modules.map((module) => (
+                    <option key={module.id} value={module.id}>
+                      {module.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {!isEditing && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Plan Type</label>
+                    <select
+                      name="type"
+                      value={formData.type}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      required
+                    >
+                      <option value="in_class">In Class Plan</option>
+                      <option value="self_study">Self Study Plan</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Semester</label>
+                    <select
+                      name="semester"
+                      value={formData.semester}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      required
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((sem) => (
+                        <option key={sem} value={sem}>
+                          Semester {sem}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Start</label>
@@ -162,6 +237,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                   {errors.end && <p className="text-red-500 text-xs mt-1">{errors.end}</p>}
                 </div>
               </div>
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -172,6 +248,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                 />
                 <label className="text-sm font-medium">All Day Event</label>
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Color</label>
                 <select
@@ -187,35 +264,40 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElemen
                   <option value="#8b5cf6">Purple</option>
                 </select>
               </div>
+
               <div className="flex justify-between items-center mt-4">
-                {event?.id && onDelete && (
+                {isEditing && (
                   <button
                     type="button"
                     onClick={() => event?.id && onDelete(event.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition cursor-pointer"
+                    disabled={isLoading}
                   >
-                    Delete
+                    {isLoading ? 'Deleting...' : 'Delete'}
                   </button>
                 )}
                 <div className="flex gap-2 ml-auto">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition cursor-pointer"
+                    disabled={isLoading}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition cursor-pointer"
+                    disabled={isLoading}
                   >
-                    {event?.id ? 'Update' : 'Create'}
+                    {isLoading ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>
             </form>
           </div>
         </div>
-      </dialog>)
+      </dialog>
+    );
   }
 );

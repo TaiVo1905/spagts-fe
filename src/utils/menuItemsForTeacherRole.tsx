@@ -1,11 +1,41 @@
 import { FaGraduationCap } from "react-icons/fa";
+import { useAuth } from "../store/AuthContext";
+import moduleService from "../services/moduleService";
+import { JSX, useEffect, useState } from "react";
 
-const menuItems = [
-    { label: 'PNV 25A', link: '/PNV25B', icon: <FaGraduationCap /> },
-    { label: 'PNV 25B', link: '/PNV25B', icon: <FaGraduationCap /> },
-    { label: 'PNV 26A', link: '/PNV25B', icon: <FaGraduationCap /> },
-    { label: 'PNV 26B', link: '/PNV25B', icon: <FaGraduationCap /> },
-    { label: 'PNV 27A', link: '/PNV25B', icon: <FaGraduationCap /> },
-    { label: 'PNV 27B', link: '/PNV25B', icon: <FaGraduationCap /> },
-];
+
+const menuItems = () => {
+    const { user } = useAuth();
+    
+    const [items, setItems] = useState<Array<{ 
+        label: string; 
+        link: string; 
+        icon: JSX.Element 
+    }>>([]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchModules = async () => {
+            try {
+                const response = await moduleService.getUserModules(user.id);
+                const teacherModules = response.data;
+                
+                const mappedItems = teacherModules.map((teacherModule: any) => ({
+                    label: teacherModule.name,
+                    link: `/teacher/modules/${teacherModule.id}`, 
+                    icon: <FaGraduationCap />
+                }));
+                
+                setItems(mappedItems);
+            } catch (error) {
+                console.error("Failed to fetch modules:", error);
+            }
+        };
+
+        fetchModules();
+    }, [user]);
+
+    return items;
+};
 export default menuItems;

@@ -1,30 +1,45 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import TeacherCart from '../components/TeacherCart';
 import Avatar from '../components/Avatar';
-import menuItems from '../utils/menuItemsForTeacherRole';
+import menuItemsForTeacherRole from '../utils/menuItemsForTeacherRole';
+import menuItemsForStudentRole from '../utils/menuItemsForStudentRole';
+import { useDeadlineNotifications } from '../hooks/useDeadlineNotifications';
+import { usePlanSync } from '../hooks/usePlanSync';
+import { useAuth } from '../store/AuthContext';
 
 const TeacherLayout: React.FC = () => {
+    const location = useLocation();
+    useDeadlineNotifications();
+    usePlanSync();
+    
+    // Get menu items using hooks
+    const teacherMenuItems = menuItemsForTeacherRole();
+    const studentMenuItems = menuItemsForStudentRole();
+    
+    // Determine which menu items to use
+    const menuItems = location.pathname.toLowerCase().includes('teacher/modules') 
+        ? teacherMenuItems 
+        : studentMenuItems;
+    const { user } = useAuth();
+
     return (
         <>
-            {/* Header có Avatar giáo viên */}
             <Header
                 Avatar={
                     <Avatar
-                        name="Nguyễn Thị Thùy Trang"
-                        imageUrl="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQR-5mE4fCK8ve2inVMmTQkBeC3VeTeaXY9Lg&s"
+                        name={user?.name}
+                        imageUrl= {user?.imageUrl}
                         className="w-[48px] h-[48px]"
                     />
                 }
             />
 
             <div className="flex">
-                <Sidebar menuItems={menuItems} />
+                {!location.pathname.toLowerCase().includes('teacher/profile') && <Sidebar menuItems={menuItems} />}
 
-                <div className="flex flex-col flex-grow ml-3">
-                    <TeacherCart />
+                <div className="flex flex-col flex-grow w-[calc(100vw-300px)]">
                     <Outlet />
                 </div>
             </div>

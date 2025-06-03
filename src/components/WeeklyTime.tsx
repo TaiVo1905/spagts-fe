@@ -3,6 +3,8 @@ import WeeklyGoalService, { WeeklyGoal } from '../services/weeklyGoalService';
 import axios from 'axios';
 import { useAuth } from '../store/AuthContext';
 import { toast } from 'react-hot-toast';
+import { useRole } from '../utils/useRole';
+import { useParams } from 'react-router-dom';
 
 type Week = {
   startDate: string;
@@ -48,7 +50,8 @@ const WeeklyTime: React.FC<DayGoalProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [showAddForm, setShowAddForm] = useState(false);
   const { user } = useAuth();
-  const userId = user?.id || 0;
+  const { id: studentId } = useParams<{ id: string }>();
+  const userId = Number(studentId) || user?.id || 0;
 
   const [newStartDate, setNewStartDate] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
@@ -120,6 +123,7 @@ const WeeklyTime: React.FC<DayGoalProps> = ({
         start_date: newStartDate,
         end_date: newEndDate,
         goal_content: newGoalContent.trim(),
+        is_completed: false,
         student_id: userId,
         semester: semester
       };
@@ -147,16 +151,16 @@ const WeeklyTime: React.FC<DayGoalProps> = ({
         <div className="flex gap-3">
           {weeks.length === 0 && (
             <div className="py-4 text-center text-gray-500 w-full">
-              No weekly goals yet. Click "Add Week" to get started!
+              No weekly goals yet. {useRole().isStudent && 'Click "Add Week" to get started!'}
             </div>
           )}
-          <button
+          {useRole().isStudent && <button
             onClick={handleAddWeekClick}
             className="flex-shrink-0 px-6 py-3 rounded-xl text-sm font-semibold transition-all focus:ring-2 focus:ring-offset-2 focus:ring-[#21BAEA] bg-white text-gray-600 border border-gray-300 hover:bg-gray-100"
           >
             <span className="text-lg leading-none">＋</span>
             <span className="text-sm">Add Week</span>
-          </button>
+          </button>}
           {weeks.map((week, index) => (
             <button
               key={index}

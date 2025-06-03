@@ -17,13 +17,30 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
   const navigate = useNavigate();
-  const location = useLocation()
+  const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [activeItem, setActiveItem] = useState<string>('');
   const {isAdmin, isStudent, isTeacher} = useRole();
-  useEffect( () => {
-    ( isAdmin || isStudent || isTeacher ) && setActiveItem(location.pathname);
-  }, [isAdmin, isStudent, isTeacher])
+
+  // Auto-open parent menu when child is active
+  useEffect(() => {
+    const currentPath = location.pathname;
+    setActiveItem(currentPath);
+
+    // Find and open parent menu if current path matches a child
+    menuItems.forEach(item => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(child => 
+          child.link === currentPath || 
+          (child.children && child.children.some(subChild => subChild.link === currentPath))
+        );
+        if (hasActiveChild) {
+          setOpenMenus(prev => ({ ...prev, [item.label]: true }));
+        }
+      }
+    });
+  }, [location.pathname, menuItems]);
+
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({
       ...prev,
@@ -31,9 +48,11 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
     }));
   };
 
-  const handleItemClick = (path: string) => {
+  const handleItemClick = (path: string, hasChildren: boolean) => {
+    if (!hasChildren) {
     setActiveItem(path);
     navigate(path);
+    }
   };
 
   return (
@@ -46,8 +65,11 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
                   activeItem === item.link ? 'bg-(--primary-color) text-(--light-color)' : 'text-(--text-color)/60'
                 }`}
                 onClick={() => {
-                  item.children && toggleMenu(item.label);
-                  handleItemClick(item.link);
+                  if (item.children) {
+                    toggleMenu(item.label);
+                  } else {
+                    handleItemClick(item.link, false);
+                  }
                 }}
               >
                 <span className="pr-2">{item.icon}</span>
@@ -56,18 +78,21 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
               </div>
               <div
                 className={`ml-4 overflow-hidden transition-all duration-300 ${
-                  openMenus[item.label] ? '' : 'max-h-0'
+                  openMenus[item.label] ? 'max-h-[500px]' : 'max-h-0'
                 }`}
               >
                 {item.children?.map((child) => (
                   <div key={child.link}>
                     <div
                       className={`flex items-center p-2 cursor-pointer rounded hover:bg-(--primary-color)/90 ${
-                        activeItem === child.link ? 'bg-(--primary-color) text-(--text-color)' : 'text-(--text-color)/60'
+                        activeItem === child.link ? 'bg-(--primary-color) text-(--light-color)' : 'text-(--text-color)/60'
                       }`}
                       onClick={() => {
-                        child.children && toggleMenu(child.label);
-                        handleItemClick(child.link);
+                        if (child.children) {
+                          toggleMenu(child.label);
+                        } else {
+                          handleItemClick(child.link, false);
+                        }
                       }}
                     >
                       <span className="pr-2">{child.icon}</span>
@@ -77,16 +102,16 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
                     {child.children && (
                       <div
                         className={`ml-4 overflow-hidden transition-all duration-300 ${
-                          openMenus[child.label] ? '' : 'max-h-0'
+                          openMenus[child.label] ? 'max-h-[500px]' : 'max-h-0'
                         }`}
                       >
                         {child.children.map((subChild) => (
                           <div
                             key={subChild.link}
                             className={`flex items-center gap-2 p-2 cursor-pointer rounded hover:bg-(--primary-color)/90 ${
-                              activeItem === subChild.link ? 'bg-(--primary-color) text-(--text-color)' : 'text-gray-700'
+                              activeItem === subChild.link ? 'bg-(--primary-color) text-(--light-color)' : 'text-(--text-color)/60'
                             }`}
-                            onClick={() => handleItemClick(subChild.link)}
+                            onClick={() => handleItemClick(subChild.link, false)}
                           >
                             <span className="pr-2">{subChild.icon}</span>
                             {subChild.label}

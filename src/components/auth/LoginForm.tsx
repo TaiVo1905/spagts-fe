@@ -24,8 +24,17 @@ const LoginForm: React.FC = () => {
 
     try {
       await login(email, password);
-    } catch (err) {
+    } catch (err: any) {
+      if(err.status == 422) {
+        if(err.response.data.errors?.password) {
+          toast.error(err.response.data.errors.password[0]);
+        } else {
+          toast.error(err.response.data.errors.email[0]);
+        }
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      console.log(err)
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -37,7 +46,7 @@ const LoginForm: React.FC = () => {
       <Toaster position="top-right" reverseOrder={true} />
       <div className="w-full max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Hi there!</h2>
           <p className="text-gray-600 mt-2">
             Sign in to access your account
           </p>
