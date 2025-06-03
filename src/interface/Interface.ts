@@ -2,9 +2,9 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  imageUrl: string;
+  imageUrl?: string;
   roles: 'Admin' | 'Teacher' | 'Student';
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Class {

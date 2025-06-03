@@ -1,9 +1,14 @@
 import axiosClient from './axiosClient';
 
+export interface ClassMemberUpdateRequest {
+  student_ids: number[];
+  teacher_ids: number[];
+}
+
 export const classUserService = {
-  addUsersToClass: async (classId: number, userIds: number[]) => {
+  addUsersToClass: async (classId: number, data: ClassMemberUpdateRequest) => {
     try {
-      const response = await axiosClient.put(`/classes/${classId}/users`, { user_ids: userIds });
+      const response = await axiosClient.put(`/classes/${classId}/users`, data);
       return response.data;
     } catch (error) {
       console.error('Error adding users to class:', error);

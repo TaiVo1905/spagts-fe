@@ -50,8 +50,8 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
 
   const handleItemClick = (path: string, hasChildren: boolean) => {
     if (!hasChildren) {
-      setActiveItem(path);
-      navigate(path);
+    setActiveItem(path);
+    navigate(path);
     }
   };
 

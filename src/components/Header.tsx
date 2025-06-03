@@ -53,7 +53,7 @@ const Header: React.FC<Props> = ({Avatar}) => {
                 </div>
                 {isDropdownOpen && (
                     <div className="absolute top-[60px] right-0 w-[200px] bg-white rounded-md shadow-lg py-1 z-50">
-                        {!isStudent && <div className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center" onClick={ isTeacher ? () => navigate('/teacher/profile') : () => navigate('/teacher/profile')}>
+                        {!isStudent && <div className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center" onClick={ isTeacher ? () => navigate('/teacher/profile') : () => navigate('/admin/profile')}>
                             <FaUserCircle className="mr-2" /> Edit Profile
                         </div>}
                         <div className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center" onClick={handleLogout}>

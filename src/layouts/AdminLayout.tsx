@@ -24,9 +24,9 @@ const AdminLayout: React.FC = () => {
                 }
             />
             <div className='flex'>
-                <Sidebar
+                {!location.pathname.toLowerCase().includes('admin/profile') && <Sidebar
                     menuItems={menuItems}
-                />
+                />}
                 <Outlet/>
             </div>
         </>

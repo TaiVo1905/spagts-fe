@@ -22,7 +22,12 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onSuccess, initialState }) =>
     setLoading(true);
     setError(null);
     try {
-      await userService.addUser(form);
+      if(initialState.id) {
+        await userService.updateProfile(initialState.id, {name: form.name, email: form.email});
+        await userService.updateRole(initialState.id, {roles: form.roles});
+      } else {
+        await userService.addUser(form);
+      }
       setForm(initialState);
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -50,15 +55,20 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onSuccess, initialState }) =>
           <option value="Admin">Admin</option>
         </select>
       </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Password</label>
-        <input name="password" type="password" value={form.password} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Confirm Password</label>
-        <input name="password_confirmation" type="password" value={form.password_confirmation} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400" />
-      </div>
+      {!initialState?.id && (
+        <>
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input name="password" type="password" value={form.password} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Confirm Password</label>
+            <input name="password_confirmation" type="password" value={form.password_confirmation} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400" />
+          </div>
+        </>
+      )}
       {error && <div className="text-red-500 text-sm">{error}</div>}
+
       <button type="submit" disabled={loading} className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-60 mt-2">{loading ? 'Saving...' : 'Save'}</button>
     </form>
   );

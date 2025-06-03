@@ -1,14 +1,23 @@
-
+// AddClassForm.tsx
 import React, { useState, useEffect } from 'react';
 import { Class, User } from '../../interface/Interface';
 import userService from '../../services/userService';
 import { classService } from '../../services/classService';
-import { classUserService } from '../../services/classUserService';
+import { classUserService, ClassMemberUpdateRequest } from '../../services/classUserService';
 
 interface AddClassFormProps {
   onSuccess?: () => void;
   isEdit: boolean;
   initialState: Class;
+}
+
+interface UserResponse {
+  id: number;
+  name: string;
+  email: string;
+  roles: "Teacher" | "Student" | "Admin";
+  createdAt: string;
+  imageUrl?: string;
 }
 
 const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, initialState }) => {
@@ -19,18 +28,21 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
   const [teachers, setTeachers] = useState<User[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
 
   useEffect(() => {
     setForm(initialState);
     if (isEdit && initialState.id) {
       fetchClassUsers(initialState.id);
+      setSelectedTeacherId(initialState.teacher?.id || null);
     }
-  }, [initialState]);
+  }, [initialState, isEdit]);
 
   const fetchClassUsers = async (classId: number) => {
     try {
-      const users = await classUserService.getClassUsers(classId);
-      setSelectedUsers(users.data.data.map((user: User) => user.id));
+      const response = await classUserService.getClassUsers(classId);
+      const users = response.data;
+      setSelectedUsers(users.map((user: User) => user.id));
     } catch (err) {
       console.error('Error fetching class users:', err);
     }
@@ -40,8 +52,24 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
     const fetchUsers = async () => {
       try {
         const response = await userService.getUsers(1, 10000);
-        const teacherUsers = response.data.data.filter((user: User) => user.roles === 'Teacher');
-        const studentUsers = response.data.data.filter((user: User) => user.roles === 'Student');
+        const users = response.data.data as UserResponse[];
+        
+        const teacherUsers = users
+          .filter(user => user.roles === 'Teacher')
+          .map(user => ({
+            ...user,
+            created_at: user.createdAt,
+            imageUrl: user.imageUrl || 'https://cdn-icons-png.flaticon.com/512/10892/10892514.png'
+          })) as User[];
+          
+        const studentUsers = users
+          .filter(user => user.roles === 'Student')
+          .map(user => ({
+            ...user,
+            created_at: user.createdAt,
+            imageUrl: user.imageUrl || 'https://cdn-icons-png.flaticon.com/512/10892/10892514.png'
+          })) as User[];
+          
         setTeachers(teacherUsers);
         setStudents(studentUsers);
       } catch (err) {
@@ -55,7 +83,14 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'teacher_id') {
-      const selectedTeacher = teachers.find(t => t.id === Number(value));
+      const teacherId = Number(value);
+      setSelectedTeacherId(teacherId);
+      setSelectedUsers(prev => 
+        prev.includes(teacherId) 
+          ? prev.filter(id => id !== teacherId) 
+          : [...prev, teacherId]
+      );
+      const selectedTeacher = teachers.find(t => t.id === teacherId);
       if (selectedTeacher) {
         setForm({ ...form, teacher: selectedTeacher });
       }
@@ -86,7 +121,6 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
         });
         setStep(2);
       } else {
-        // For new class, just proceed to step 2
         setStep(2);
       }
     } catch (err: any) {
@@ -104,7 +138,7 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
     try {
       let classId = form.id;
       
-      // Nếu tạo mới thì tạo lớp trước
+      // If creating new class, create it first
       if (!isEdit) {
         const newClass = (await classService.add({
           teacher_id: form.teacher.id,
@@ -113,19 +147,21 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
         classId = newClass.id;
       }
 
-      // Tách user thành 2 nhóm
-      const selectedTeacherIds = teachers
-        .filter(t => selectedUsers.includes(t.id))
-        .map(t => t.id);
-      const selectedStudentIds = students
-        .filter(s => selectedUsers.includes(s.id))
-        .map(s => s.id);
+      // Prepare teacher and student IDs
+      const teacherIds = selectedUsers
+        .filter(id => teachers.some(t => t.id === id))
+        .concat(form.teacher.id);
+      
+      const studentIds = selectedUsers
+        .filter(id => students.some(s => s.id === id));
 
-      // Gọi API đúng chuẩn backend
-      await classService.updateClassMembers(classId, {
-        student_ids: selectedStudentIds,
-        teacher_ids: selectedTeacherIds
-      });
+      // Add selected users
+      const updateData: ClassMemberUpdateRequest = {
+        teacher_ids: teacherIds,
+        student_ids: studentIds
+      };
+
+      await classUserService.addUsersToClass(classId, updateData);
 
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -182,11 +218,14 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ onSuccess, isEdit = false, 
                     checked={selectedUsers.includes(teacher.id)}
                     onChange={() => handleUserSelection(teacher.id)}
                     className="mr-2"
+                    hidden={selectedTeacherId === teacher.id}
                   />
-                  <label htmlFor={`teacher-${teacher.id}`} className="flex items-center">
-                    <span className="font-medium">#{teacher.id}</span>
-                    <span className="ml-2">{teacher.name}</span>
-                  </label>
+                  {!(selectedTeacherId === teacher.id) && (
+                    <label htmlFor={`teacher-${teacher.id}`} className="flex items-center">
+                      <span className="font-medium">#{teacher.id}</span>
+                      <span className="ml-2">{teacher.name}</span>
+                    </label>
+                  )}
                 </div>
               ))}
             </div>

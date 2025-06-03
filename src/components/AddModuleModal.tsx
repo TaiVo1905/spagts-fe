@@ -99,21 +99,21 @@ const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded, modu
         })).data;
 
         if (newModule.id) {
-          await moduleService.addClassesToModule(newModule.id, selectedClassIds);
-          const teacherResponse = await axiosClient.get(`/modules/${newModule.id}/users`, {
-            params: { roles: 'Teacher' }
-          });
-          
-          const teachers = teacherResponse.data?.data || [];
-          
-          await Promise.allSettled(
-            teachers.map(async (teacher: any) => {
-              if (teacher?.id) {
-                const moduleTeacherRef = ref(database, `module_teachers/${newModule.id}/${teacher.id}`);
-                await set(moduleTeacherRef, true);
-              }
-            })
-          );
+        await moduleService.addClassesToModule(newModule.id, selectedClassIds);
+        const teacherResponse = await axiosClient.get(`/modules/${newModule.id}/users`, {
+                params: { roles: 'Teacher' }
+              });
+        
+              const teachers = teacherResponse.data?.data || [];
+              
+              await Promise.allSettled(
+                teachers.map(async (teacher: any) => {
+                  if (teacher?.id) {
+                    const moduleTeacherRef = ref(database, `module_teachers/${newModule.id}/${teacher.id}`);
+                    await set(moduleTeacherRef, true);
+                  }
+                })
+              );
         }
         toast.success('Subject added successfully');
       }
@@ -172,9 +172,9 @@ const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded, modu
           rules={[{ required: true, message: 'Please enter subject name' }]}
         >
           <Input 
-            placeholder="e.g. Mathematics, English, Science"
-            disabled={isLoading || isFetchingClasses}
-          />
+              placeholder="e.g. Mathematics, English, Science"
+              disabled={isLoading || isFetchingClasses}
+            />
         </Form.Item>
 
         <Form.Item 
@@ -183,24 +183,24 @@ const AddModuleModal: React.FC<Props> = ({ isOpen, onClose, onSubjectAdded, modu
           validateStatus={selectedClassIds.length === 0 ? 'error' : ''}
           help={selectedClassIds.length === 0 ? 'Please select at least one class' : ''}
         >
-          {isFetchingClasses ? (
-            <p>Loading classes...</p>
+            {isFetchingClasses ? (
+              <p>Loading classes...</p>
           ) : classes.length > 0 ? (
             <div className="max-h-40 overflow-y-auto border rounded p-2">
-              {classes.map(classItem => (
+                {classes.map(classItem => (
                 <div key={classItem.id} className="mb-2">
                   <Checkbox
-                    checked={selectedClassIds.includes(classItem.id)}
-                    onChange={() => handleClassSelection(classItem.id)}
-                    disabled={isLoading}
+                      checked={selectedClassIds.includes(classItem.id)}
+                      onChange={() => handleClassSelection(classItem.id)}
+                      disabled={isLoading}
                   >
-                    {classItem.name}
+                      {classItem.name}
                   </Checkbox>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-600 text-sm">No classes available.</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600 text-sm">No classes available.</p>
           )}
         </Form.Item>
 

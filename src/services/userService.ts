@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { User } from '../interface/Interface';
 import axiosClient from './axiosClient';
 
@@ -5,6 +6,7 @@ import React from 'react';
 
 
 export interface AddUserPayload {
+  id?: number,
   name: string;
   email: string;
   roles: string;
@@ -12,8 +14,14 @@ export interface AddUserPayload {
   password_confirmation?: string;
 }
 
-interface UserResponse {
-  data: User[];
+export interface UserResponse {
+  data: {
+    id: number;
+    name: string;
+    email: string;
+    roles: string;
+    created_at: string;
+  }[];
   meta: {
     current_page: number;
     last_page: number;
@@ -43,7 +51,7 @@ const userService = {
     return axiosClient.post('/users/import', formData);
   },
 
-  downloadTemplate: () => axiosClient.get('/users/template', { 
+  downloadTemplate: () => axiosClient.get('/users/import/template', { 
     responseType: 'blob',
     headers: {
       'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -106,7 +114,7 @@ const userService = {
     try {
       await axiosClient.delete(`/users/${id}`);
       setUsers((prev: any[]) => prev.filter((user) => user.id !== id));
-      alert("User deleted successfully.");
+      toast.success("User deleted successfully.");
     } catch (error) {
       console.error("Error deleting user:", error);
       alert("Failed to delete user.");

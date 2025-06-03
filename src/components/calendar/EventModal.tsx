@@ -65,55 +65,55 @@ export const EventModal = forwardRef<HTMLDialogElement, EventModalProps>(
     }, [event]);
 
     const validate = () => {
-      const newErrors: { [key: string]: string } = {};
-      if (!formData.title.trim()) newErrors.title = 'Title is required';
-      if (!formData.start) newErrors.start = 'Start time is required';
-      if (!formData.end) newErrors.end = 'End time is required';
-      if (formData.start && formData.end && (new Date(formData.end)) < (new Date(formData.start))) {
-        newErrors.end = 'End time must be after start time';
-      }
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    };
+  const newErrors: { [key: string]: string } = {};
+  if (!formData.title.trim()) newErrors.title = 'Title is required';
+  if (!formData.start) newErrors.start = 'Start time is required';
+  if (!formData.end) newErrors.end = 'End time is required';
+  if (formData.start && formData.end && (new Date(formData.end)) < (new Date(formData.start))) {
+    newErrors.end = 'End time must be after start time';
+  }
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
 
     const formatDateForInput = (date: Date | string | undefined | null) => {
-      if (!date) return '';
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return '';
-      const tzOffset = d.getTimezoneOffset() * 60000;
-      const localISO = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
-      return localISO;
-    };
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  const localISO = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+  return localISO;
+};
 
-    const parseLocalDateTime = (value: string) => {
-      const [date, time] = value.split('T');
-      const [year, month, day] = date.split('-').map(Number);
-      const [hour, minute] = time.split(':').map(Number);
-      return new Date(year, month - 1, day, hour, minute);
-    }
+const parseLocalDateTime = (value: string) => {
+  const [date, time] = value.split('T');
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+  return new Date(year, month - 1, day, hour, minute);
+}
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      const { name, value, type } = e.target;
-      const checked = (e.target as HTMLInputElement).checked;
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const { name, value, type } = e.target;
+  const checked = (e.target as HTMLInputElement).checked;
 
-      if (name === 'start' || name === 'end') {
-        setFormData({
-          ...formData,
-          [name]: parseLocalDateTime(value),
-        });
-      } else {
-        setFormData({
-          ...formData,
-          [name]: type === 'checkbox' ? checked : value,
-        });
-      }
-    };
+  if (name === 'start' || name === 'end') {
+    setFormData({
+      ...formData,
+      [name]: parseLocalDateTime(value),
+    });
+  } else {
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
+  }
+};
 
     const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!validate()) return;
-      await onSave(formData);
-    };
+  e.preventDefault();
+  if (!validate()) return;
+  await onSave(formData);
+};
 
     return (
       <dialog ref={ref} className="modal">
