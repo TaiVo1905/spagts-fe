@@ -1,0 +1,87 @@
+.table-container {
+  overflow-x: auto; 
+  overflow-y: auto; 
+  max-height: 400px; 
+  margin: 20px;
+  width: 70%;
+}
+
+thead {
+  height: 58px;
+}
+
+.lesson-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-radius: 8px; 
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+}
+
+.lesson-table th{
+    border-bottom: 1px solid #e0e0e0; 
+    width: 58px;
+}
+.lesson-table td {
+  border-bottom: 1px solid #e0e0e0; 
+  padding: 50px; 
+  text-align: center; 
+  font-size: 18px; 
+  min-width: 150px; 
+}
+
+.lesson-table th {
+  background-color: white;
+  color: #007bff; 
+}
+
+.lesson-table tr:nth-child(odd) {
+  background-color: rgba(98, 77, 227, 0.1)
+}
+
+.lesson-table tr:hover {
+  background-color: #e3f2fd; 
+}
+
+.add-button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px; 
+  float: right; 
+  margin-top: -5px; 
+}
+
+.add-button:hover {
+  background-color: #0056b3;
+}
+
+.col-240 {
+  width: 240px;
+}
+
+.col-400 {
+  width: 400px;
+}
+
+.col-300 {
+  width: 300px;
+}
+
+.lesson-table th.col-240,
+.lesson-table td.col-240 {
+  width: 240px;
+}
+
+.lesson-table th.col-400,
+.lesson-table td.col-400 {
+  width: 400px;
+}
+
+.lesson-table th.col-300,
+.lesson-table td.col-300 {
+  width: 300px;
+}

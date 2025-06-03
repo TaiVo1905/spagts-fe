@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/App.css'
-
+import 'tailwind-scrollbar';
+import { useRole } from '../utils/useRole';
 
 interface MenuItem {
   label: string;
-  link?: string;
-  icon?: React.ReactNode;
+  link: string;
+  icon: React.ReactNode;
   children?: MenuItem[];
 }
 
@@ -14,8 +16,30 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [activeItem, setActiveItem] = useState<string>('');
+  const {isAdmin, isStudent, isTeacher} = useRole();
+
+  // Auto-open parent menu when child is active
+  useEffect(() => {
+    const currentPath = location.pathname;
+    setActiveItem(currentPath);
+
+    // Find and open parent menu if current path matches a child
+    menuItems.forEach(item => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(child => 
+          child.link === currentPath || 
+          (child.children && child.children.some(subChild => subChild.link === currentPath))
+        );
+        if (hasActiveChild) {
+          setOpenMenus(prev => ({ ...prev, [item.label]: true }));
+        }
+      }
+    });
+  }, [location.pathname, menuItems]);
 
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({
@@ -24,44 +48,56 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
     }));
   };
 
-  const handleItemClick = (label: string) => {
-    setActiveItem(label);
+  const handleItemClick = (path: string, hasChildren: boolean) => {
+    if (!hasChildren) {
+    setActiveItem(path);
+    navigate(path);
+    }
   };
 
   return (
-    <div className="w-[240px] bg-white border-r border-gray-300 h-screen p-4 box-border font-poppins text-base">
+    <div className="w-[300px] bg-(--light-color) border-r border-gray-300 p-4 box-border poppins-regular mt-0.5">
+      <div className='overflow-auto h-[calc(100vh-120px)] tailwind-custom-scrollbar'>
       {menuItems.map((item) => (
-        <div key={item.label} className="mb-2">
-          {item.children ? (
-            <>
+        <div key={item.link} className="mb-2">
               <div
-                className={`flex items-center p-2 cursor-pointer rounded hover:bg-gray-100 ${
-                  activeItem === item.label ? 'bg-[#21BAEA] text-white' : 'text-gray-800'
+                className={`flex items-center p-2 cursor-pointer rounded hover:bg-(--primary-color)/30 ${
+                  activeItem === item.link ? 'bg-(--primary-color) text-(--light-color)' : 'text-(--text-color)/60'
                 }`}
                 onClick={() => {
-                  toggleMenu(item.label);
-                  handleItemClick(item.label);
+                  if (item.children) {
+                    toggleMenu(item.label);
+                  } else {
+                    handleItemClick(item.link, false);
+                  }
                 }}
               >
                 <span className="pr-2">{item.icon}</span>
                 {item.label}
-                <span className="ml-auto text-xs">{openMenus[item.label] ? '▲' : '▼'}</span>
+                {item.children && (<span className="ml-auto text-xs">{openMenus[item.label] ? '▲' : '▼'}</span>)}
               </div>
               <div
                 className={`ml-4 overflow-hidden transition-all duration-300 ${
                   openMenus[item.label] ? 'max-h-[500px]' : 'max-h-0'
                 }`}
               >
-                {item.children.map((child) => (
-                  <div key={child.label}>
+                {item.children?.map((child) => (
+                  <div key={child.link}>
                     <div
-                      className={`flex items-center gap-2 p-2 cursor-pointer rounded hover:bg-gray-100 ${
-                        activeItem === child.label ? 'bg-[#21BAEA] text-white' : 'text-gray-700'
+                      className={`flex items-center p-2 cursor-pointer rounded hover:bg-(--primary-color)/90 ${
+                        activeItem === child.link ? 'bg-(--primary-color) text-(--light-color)' : 'text-(--text-color)/60'
                       }`}
-                      onClick={() => handleItemClick(child.label)}
+                      onClick={() => {
+                        if (child.children) {
+                          toggleMenu(child.label);
+                        } else {
+                          handleItemClick(child.link, false);
+                        }
+                      }}
                     >
                       <span className="pr-2">{child.icon}</span>
                       {child.label}
+                      {child.children && (<span className="ml-auto text-xs">{openMenus[child.label] ? '▲' : '▼'}</span>)}
                     </div>
                     {child.children && (
                       <div
@@ -70,38 +106,25 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems }) => {
                         }`}
                       >
                         {child.children.map((subChild) => (
-                          <a
-                            key={subChild.label}
-                            href={subChild.link}
-                            className={`flex items-center gap-2 p-2 rounded hover:bg-gray-100 ${
-                              activeItem === subChild.label ? 'bg-[#21BAEA] text-white' : 'text-gray-700'
+                          <div
+                            key={subChild.link}
+                            className={`flex items-center gap-2 p-2 cursor-pointer rounded hover:bg-(--primary-color)/90 ${
+                              activeItem === subChild.link ? 'bg-(--primary-color) text-(--light-color)' : 'text-(--text-color)/60'
                             }`}
-                            onClick={() => handleItemClick(subChild.label)}
+                            onClick={() => handleItemClick(subChild.link, false)}
                           >
                             <span className="pr-2">{subChild.icon}</span>
                             {subChild.label}
-                          </a>
+                          </div>
                         ))}
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-            </>
-          ) : (
-            <a
-              href={item.link}
-              className={`flex items-center p-2 cursor-pointer rounded hover:bg-gray-100 ${
-                activeItem === item.label ? 'bg-[#21BAEA] text-white' : 'text-gray-800'
-              }`}
-              onClick={() => handleItemClick(item.label)}
-            >
-              <span className="pr-2">{item.icon}</span>
-              {item.label}
-            </a>
-          )}
         </div>
       ))}
+      </div>
     </div>
   );
 };

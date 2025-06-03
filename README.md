@@ -20,6 +20,8 @@ Admins manage users and class structures.
 src/
 ├── assets/         # Images, fonts, static files
 ├── components/     # Reusable UI components
+├── hooks
+├── interface
 ├── layouts/        # Layout components wrapping pages or sections
 ├── pages/          # Page components for routing
 ├── routes/         # Route components
