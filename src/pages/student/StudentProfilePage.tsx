@@ -48,7 +48,7 @@ const StudentProfilePage: React.FC = () => {
     try {
       const response = await axiosClient.get(`/users/${studentId}/classes`);
       const classes = response.data.data;
-      // Get the first class name if available
+      
       if (classes && classes.length > 0) {
         setClassName(classes[0].name);
       } else {

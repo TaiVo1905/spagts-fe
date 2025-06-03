@@ -38,11 +38,9 @@ const DashboardPage = () => {
 
   const handleEdit = async (moduleId: number) => {
     try {
-      // Fetch module details
       const response = await moduleService.get(moduleId);
       const moduleData = response.data;
-      
-      // Fetch class IDs for this module
+
       const classResponse = await moduleService.getModuleClasses(moduleId);
       const classIds = classResponse.data.map((c: any) => c.id);
       

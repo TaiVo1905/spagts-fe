@@ -2,15 +2,16 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, off, push, set, remove, get } from 'firebase/database';
 import { getAnalytics } from "firebase/analytics";
 
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBZ_GyuBSDEocEE22R0_NdPopk6lKjvrAI",
-  authDomain: "stagts-app2.firebaseapp.com",
-  databaseURL: "https://stagts-app2-default-rtdb.asia-southeast1.firebasedatabase.app/",
-  projectId: "stagts-app2",
-  storageBucket: "stagts-app2.firebasestorage.app",
-  messagingSenderId: "444869712574",
-  appId: "1:444869712574:web:db6d8b2c1b9965ad7f1cef",
-  measurementId: "G-0FXFWE29R9"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
